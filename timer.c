@@ -20,18 +20,29 @@ void update_timer(uint64_t us_gone)
         if (vsync_collect >= 108714) // Eine Zeile wäre jetzt fertig
         {
             vsync_collect -= 108714;
+
+            if (io_regs->stat & (1 << 3))
+                io_regs->int_flag |= INT_LCDC_STAT;
+
             if (++io_regs->ly > 153)
                 io_regs->ly = 0;
             if (io_regs->ly == 144)
             {
-                io_regs->int_flag = INT_VBLANK;
-                generate_interrupts();
+                io_regs->int_flag |= INT_VBLANK;
+                if (io_regs->stat & (1 << 4))
+                    io_regs->int_flag |= INT_LCDC_STAT;
             }
 
             if (io_regs->lyc == io_regs->ly)
+            {
                 io_regs->stat |= (1 << 2);
+                if (io_regs->stat & (1 << 6))
+                    io_regs->int_flag |= INT_LCDC_STAT;
+            }
             else
                 io_regs->stat &= ~(1 << 2);
+
+            generate_interrupts();
         }
     }
 

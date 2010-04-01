@@ -37,9 +37,20 @@ static void lcdc(uint8_t value)
         lcd_on = 1;
 }
 
+static void p1(uint8_t value)
+{
+    value &= KEY_DIR | KEY_OTH;
+    if (!(value & KEY_DIR))
+        value |= ~((keystates & 0xF0) >> 4);
+    if (!(value & KEY_OTH))
+        value |= ~(keystates & 0x0F);
+
+    io_regs->p1 = value;
+}
+
 static void (*const io_handlers[256])(uint8_t value) =
 {
-    NULL, // p1
+    &p1, // p1
     (void (*)(uint8_t))&nop, // sb
     (void (*)(uint8_t))&nop, // sc
     NULL, // rsvd1
@@ -104,7 +115,7 @@ static void (*const io_handlers[256])(uint8_t value) =
     NULL, // wave_pat
     NULL, // wave_pat
     &lcdc, // lcdc
-    NULL, // stat
+    (void (*)(uint8_t))&nop, // stat
     (void (*)(uint8_t))&store_and_redraw, // scy
     (void (*)(uint8_t))&store_and_redraw, // scx
     NULL, // ly
