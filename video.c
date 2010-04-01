@@ -97,7 +97,26 @@ void init_video(void)
 
 void redraw(void)
 {
-    // SDL_UpdateRect(screen, 0, 0, 0, 0);
+    static volatile int redrawing = 0;
+
+    if (redrawing++)
+    {
+        redrawing--;
+        return;
+    }
+    for (int y = 0; y < 144; y++)
+    {
+        for (int x = 0; x < 160; x++)
+        {
+            int px = (x + io_regs->scx) & 0xFF;
+            int py = (y + io_regs->scy) & 0xFF;
+            ((uint32_t *)screen->pixels)[y * 160 + x] = ((uint32_t *)vidmem)[py * 256 + px];
+        }
+    }
+
+    SDL_UpdateRect(screen, 0, 0, 0, 0);
+
+    redrawing--;
 }
 
 void redraw_alrm(int signum)

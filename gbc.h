@@ -63,8 +63,9 @@ extern struct io *io_regs;
 extern int card_type, rom_size, ram_size;
 extern uint16_t _ip, _sp, _af, _bc, _de, _hl;
 extern int ints_enabled, want_ints_to_be, lcd_on;
-extern volatile int interrupt_issued;
+extern volatile int interrupt_issued, keystates;
 extern uint32_t rdtsc_resolution;
+extern void *vidmem;
 #define ip _ip
 #define sp _sp
 #define af _af
@@ -103,6 +104,15 @@ extern uint32_t rdtsc_resolution;
 #define INT_TIMER     (1 << 2)
 #define INT_LCDC_STAT (1 << 1)
 #define INT_VBLANK    (1 << 0)
+
+#define VK_A      KEY_A
+#define VK_B      KEY_B
+#define VK_SELECT KEY_SELECT
+#define VK_START  KEY_START
+#define VK_RIGHT  (KEY_RIGHT << 4)
+#define VK_LEFT   (KEY_LEFT  << 4)
+#define VK_UP     (KEY_UP    << 4)
+#define VK_DOWN   (KEY_DOWN  << 4)
 
 
 void generate_interrupts(void);

@@ -87,6 +87,9 @@ void load_rom(const char *fname)
 
     printf("%i ROM banks, %i RAM banks.\n", rom_size, ram_size);
 
+    vidmem = malloc(256 * 256 * 4);
+    memset(vidmem, 255, 256 * 256 * 4);
+
     run();
 
     free(memory);

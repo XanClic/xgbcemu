@@ -4,7 +4,7 @@
 
 #include "gbc.h"
 
-#define DUMP
+// #define DUMP
 
 #define X86_ZF (1 << 6)
 #define X86_CF (1 << 0)
@@ -2530,14 +2530,189 @@ static void jpz(void)
 
 static void prefix0xCB(void)
 {
-    if (handle0xCB[(int)memory[ip]] == NULL)
-    {
-        printf("Unknown opcode 0x%02X, prefixed by 0xCB\n", (unsigned)memory[ip]);
-        exit(1);
-    }
+    int bval = 1 << ((memory[ip] & 0x38) >> 3);
+    int reg = memory[ip] & 0x07;
 
-    ip++;
-    handle0xCB[(int)memory[ip - 1]]();
+    switch ((memory[ip++] & 0xC0) >> 6)
+    {
+        case 0x01: // BIT
+            #ifdef DUMP
+            printf("BIT %i, ", (memory[ip - 1] & 0x38) >> 3);
+            #endif
+            f &= FLAG_CRY;
+            switch (reg)
+            {
+                case 0:
+                    #ifdef DUMP
+                    printf("B: B == 0x%02X\n", (unsigned)b);
+                    #endif
+                    f |= (b & bval) ? 0 : FLAG_ZERO;
+                    break;
+                case 1:
+                    #ifdef DUMP
+                    printf("C: C == 0x%02X\n", (unsigned)c);
+                    #endif
+                    f |= (c & bval) ? 0 : FLAG_ZERO;
+                    break;
+                case 2:
+                    #ifdef DUMP
+                    printf("D: D == 0x%02X\n", (unsigned)d);
+                    #endif
+                    f |= (d & bval) ? 0 : FLAG_ZERO;
+                    break;
+                case 3:
+                    #ifdef DUMP
+                    printf("E: E == 0x%02X\n", (unsigned)e);
+                    #endif
+                    f |= (e & bval) ? 0 : FLAG_ZERO;
+                    break;
+                case 4:
+                    #ifdef DUMP
+                    printf("H: H == 0x%02X\n", (unsigned)h);
+                    #endif
+                    f |= (h & bval) ? 0 : FLAG_ZERO;
+                    break;
+                case 5:
+                    #ifdef DUMP
+                    printf("L: L == 0x%02X\n", (unsigned)l);
+                    #endif
+                    f |= (l & bval) ? 0 : FLAG_ZERO;
+                    break;
+                case 6:
+                    #ifdef DUMP
+                    printf("(HL): HL == 0x%04X\n", (unsigned)hl);
+                    #endif
+                    f |= (memory[hl] & bval) ? 0 : FLAG_ZERO;
+                    break;
+                case 7:
+                    #ifdef DUMP
+                    printf("A: A == 0x%02X\n", (unsigned)a);
+                    #endif
+                    f |= (a & bval) ? 0 : FLAG_ZERO;
+                    break;
+            }
+            break;
+        case 0x02: // RES
+            #ifdef DUMP
+            printf("RES %i, ", (memory[ip - 1] & 0x38) >> 3);
+            #endif
+            switch (reg)
+            {
+                case 0:
+                    #ifdef DUMP
+                    printf("B: B == 0x%02X\n", (unsigned)b);
+                    #endif
+                    b &= ~bval;
+                    break;
+                case 1:
+                    #ifdef DUMP
+                    printf("C: C == 0x%02X\n", (unsigned)c);
+                    #endif
+                    c &= ~bval;
+                    break;
+                case 2:
+                    #ifdef DUMP
+                    printf("D: D == 0x%02X\n", (unsigned)d);
+                    #endif
+                    d &= ~bval;
+                    break;
+                case 3:
+                    #ifdef DUMP
+                    printf("E: E == 0x%02X\n", (unsigned)e);
+                    #endif
+                    e &= ~bval;
+                    break;
+                case 4:
+                    #ifdef DUMP
+                    printf("H: H == 0x%02X\n", (unsigned)h);
+                    #endif
+                    h &= ~bval;
+                    break;
+                case 5:
+                    #ifdef DUMP
+                    printf("L: L == 0x%02X\n", (unsigned)l);
+                    #endif
+                    l &= ~bval;
+                    break;
+                case 6:
+                    #ifdef DUMP
+                    printf("(HL): HL == 0x%04X\n", (unsigned)hl);
+                    #endif
+                    memory[hl] &= ~bval;
+                    break;
+                case 7:
+                    #ifdef DUMP
+                    printf("A: A == 0x%02X\n", (unsigned)a);
+                    #endif
+                    a &= ~bval;
+                    break;
+            }
+            break;
+        case 0x03: // SET
+            #ifdef DUMP
+            printf("SET %i, ", (memory[ip - 1] & 0x38) >> 3);
+            #endif
+            switch (reg)
+            {
+                case 0:
+                    #ifdef DUMP
+                    printf("B: B == 0x%02X\n", (unsigned)b);
+                    #endif
+                    b |= bval;
+                    break;
+                case 1:
+                    #ifdef DUMP
+                    printf("C: C == 0x%02X\n", (unsigned)c);
+                    #endif
+                    c |= bval;
+                    break;
+                case 2:
+                    #ifdef DUMP
+                    printf("D: D == 0x%02X\n", (unsigned)d);
+                    #endif
+                    d |= bval;
+                    break;
+                case 3:
+                    #ifdef DUMP
+                    printf("E: E == 0x%02X\n", (unsigned)e);
+                    #endif
+                    e |= bval;
+                    break;
+                case 4:
+                    #ifdef DUMP
+                    printf("H: H == 0x%02X\n", (unsigned)h);
+                    #endif
+                    h |= bval;
+                    break;
+                case 5:
+                    #ifdef DUMP
+                    printf("L: L == 0x%02X\n", (unsigned)l);
+                    #endif
+                    l |= bval;
+                    break;
+                case 6:
+                    #ifdef DUMP
+                    printf("(HL): HL == 0x%04X\n", (unsigned)hl);
+                    #endif
+                    memory[hl] |= bval;
+                    break;
+                case 7:
+                    #ifdef DUMP
+                    printf("A: A == 0x%02X\n", (unsigned)a);
+                    #endif
+                    a |= bval;
+                    break;
+            }
+            break;
+        default:
+            if (handle0xCB[(int)memory[ip - 1]] == NULL)
+            {
+                printf("Unknown opcode 0x%02X, prefixed by 0xCB\n", (unsigned)memory[ip - 1]);
+                exit(1);
+            }
+
+            handle0xCB[(int)memory[ip - 1]]();
+    }
 }
 
 static void callz(void)
@@ -3023,14 +3198,6 @@ static inline uint64_t rdtsc(void)
     return (uint64_t)lo | ((uint64_t)hi << 32);
 }
 
-static void res_b_a(void)
-{
-    #ifdef DUMP
-    printf("RES %i, A: A == 0x%02X\n", (int)memory[ip], (unsigned)a);
-    #endif
-    a &= ~(1 << memory[ip++]);
-}
-
 
 
 static void (*handle[256])(void) =
@@ -3298,8 +3465,6 @@ void run(void)
     uint64_t last_tsc;
 
     init_video();
-
-    handle0xCB[0x87] = &res_b_a;
 
     ip = 0x0100;
     sp = 0xFFFE;
