@@ -83,19 +83,21 @@ OR/XOR/SWAP:
     - Z: Gesetzt, wenn 0 rauskommt
     - N, H, C: Gelöscht
 
-INC:
+INC n:
 ——> Flags:
     - Z: Gesetzt, wenn 0 rauskommt
     - N: Gelöscht
     - H: Bei Übertrag vom Bit 3 gesetzt
     - C: Unverändert
 
-DEC:
+DEC n:
 ——> Flags:
     - Z: Gesetzt, wenn 0 rauskommt
     - N: Gesetzt
     - H: Gesetzt, wenn kein Borgen von Bit 4 erfolgt ist
     - C: Unverändert
+
+INC nn/DEC nn: Keine Flagveränderungen.
 
 DAA:
 ——> Flags:

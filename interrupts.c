@@ -35,6 +35,8 @@ void generate_interrupts(void)
     printf("Generating interrupt because of 0x%02X\n", cause);
     #endif
 
+    interrupt_issued = 1;
+
     io_regs->int_flag &= ~cause;
 
     switch (cause)
