@@ -62,6 +62,8 @@ extern char *memory;
 extern struct io *io_regs;
 extern int card_type, rom_size, ram_size;
 extern uint16_t _ip, _sp, _af, _bc, _de, _hl;
+extern int ints_enabled, want_ints_to_be, lcd_on;
+extern uint32_t rdtsc_resolution;
 #define ip _ip
 #define sp _sp
 #define af _af
@@ -76,7 +78,6 @@ extern uint16_t _ip, _sp, _af, _bc, _de, _hl;
 #define f (((uint8_t *)&_af)[0])
 #define h (((uint8_t *)&_hl)[1])
 #define l (((uint8_t *)&_hl)[0])
-extern int ints_enabled;
 
 #define KEY_A      (1 << 0)
 #define KEY_B      (1 << 1)
@@ -96,8 +97,21 @@ extern int ints_enabled;
 #define FLAG_HCRY (1 << 5)
 #define FLAG_CRY  (1 << 4)
 
+#define INT_P10_P13   (1 << 4)
+#define INT_SERIAL    (1 << 3)
+#define INT_TIMER     (1 << 2)
+#define INT_LCDC_STAT (1 << 1)
+#define INT_VBLANK    (1 << 0)
 
+
+void generate_interrupts(void);
+void init_video(void);
+void io_outb(uint8_t reg, uint8_t val);
 void load_rom(const char *fname);
+uint16_t pop(void);
+void push(uint16_t value);
+void redraw(void);
 void run(void);
+void update_timer(uint64_t us_gone);
 
 #endif
