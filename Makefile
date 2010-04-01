@@ -4,6 +4,7 @@ ECHO = @echo
 RM = -@rm -f
 
 CFLAGS = -std=gnu99 -O3 -Wall -Wextra -pedantic -c -funsigned-char -masm=intel
+LDFLAGS = `sdl-config --cflags --libs` -lrt
 
 OBJS = $(patsubst %.c,%.o,$(wildcard *.c))
 
@@ -13,7 +14,7 @@ all: gxemu
 
 gxemu: $(OBJS)
 	$(ECHO) "LINK    >$@"
-	$(LD) $^ -o $@
+	$(LD) $(LDFLAGS) $^ -o $@
 
 %.o: %.c
 	$(ECHO) "CC      $<"
