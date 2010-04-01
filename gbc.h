@@ -63,6 +63,7 @@ extern struct io *io_regs;
 extern int card_type, rom_size, ram_size;
 extern uint16_t _ip, _sp, _af, _bc, _de, _hl;
 extern int ints_enabled, want_ints_to_be, lcd_on;
+extern volatile int interrupt_issued;
 extern uint32_t rdtsc_resolution;
 #define ip _ip
 #define sp _sp
