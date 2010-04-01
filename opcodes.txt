@@ -441,7 +441,7 @@ BIT:
 0xDB —— —
 0xDC —— CALLC nn
 0xDD —— —
-0xDE —— —
+0xDE —— SBC A, #
 0xDF —— RST $0018
 0xE0 —— LD ($FF00 + n), A
 0xE1 —— POP HL
@@ -465,7 +465,7 @@ BIT:
 0xF3 —— DI
 0xF4 —— —
 0xF5 —— PUSH AF
-0xF6 —— OR B, #
+0xF6 —— OR A, #
 0xF7 —— RST $0030
 0xF8 —— LD HL, SP + n
      ——> Flags:

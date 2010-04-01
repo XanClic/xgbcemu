@@ -14,6 +14,11 @@
 
 static void (*handle0xCB[256])(void) = { NULL };
 
+static void call(void);
+static void jp(void);
+static void jr(void);
+static void ret(void);
+
 static void mem_writeb(uintptr_t addr, uint8_t value)
 {
     uint8_t *caddr = (uint8_t *)&memory[addr];
@@ -1363,6 +1368,318 @@ static void ld_a_a(void)
     #endif
 }
 
+static void add_a_b(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("ADD A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
+    #endif
+    __asm__ __volatile__ ("add al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(b));
+
+    f = 0;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+}
+
+static void add_a_c(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("ADD A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
+    #endif
+    __asm__ __volatile__ ("add al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(c));
+
+    f = 0;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+}
+
+static void add_a_d(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("ADD A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
+    #endif
+    __asm__ __volatile__ ("add al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(d));
+
+    f = 0;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+}
+
+static void add_a_e(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("ADD A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
+    #endif
+    __asm__ __volatile__ ("add al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(e));
+
+    f = 0;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+}
+
+static void add_a_h(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("ADD A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
+    #endif
+    __asm__ __volatile__ ("add al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(h));
+
+    f = 0;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+}
+
+static void add_a_l(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("ADD A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
+    #endif
+    __asm__ __volatile__ ("add al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(l));
+
+    f = 0;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+}
+
+static void add_a__hl(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("ADD A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
+    #endif
+    __asm__ __volatile__ ("add al,[edx]; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(&memory[hl]));
+
+    f = 0;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+}
+
+static void add_a_a(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("ADD A, A: A == 0x%02X\n", (unsigned)a);
+    #endif
+    __asm__ __volatile__ ("add al,al; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a));
+
+    f = 0;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+}
+
+static void adc_a_b(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("ADC A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
+    #endif
+    if (f & X86_CF)
+        __asm__ __volatile__ ("stc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(b));
+    else
+        __asm__ __volatile__ ("clc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(b));
+
+    f = 0;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+}
+
+static void adc_a_c(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("ADC A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
+    #endif
+    if (f & X86_CF)
+        __asm__ __volatile__ ("stc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(c));
+    else
+        __asm__ __volatile__ ("clc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(c));
+
+    f = 0;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+}
+
+static void adc_a_d(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("ADC A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
+    #endif
+    if (f & X86_CF)
+        __asm__ __volatile__ ("stc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(d));
+    else
+        __asm__ __volatile__ ("clc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(d));
+
+    f = 0;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+}
+
+static void adc_a_e(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("ADC A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
+    #endif
+    if (f & X86_CF)
+        __asm__ __volatile__ ("stc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(e));
+    else
+        __asm__ __volatile__ ("clc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(e));
+
+    f = 0;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+}
+
+static void adc_a_h(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("ADC A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
+    #endif
+    if (f & X86_CF)
+        __asm__ __volatile__ ("stc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(h));
+    else
+        __asm__ __volatile__ ("clc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(h));
+
+    f = 0;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+}
+
+static void adc_a_l(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("ADC A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
+    #endif
+    if (f & X86_CF)
+        __asm__ __volatile__ ("stc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(l));
+    else
+        __asm__ __volatile__ ("clc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(l));
+
+    f = 0;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+}
+
+static void adc_a__hl(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("ADC A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
+    #endif
+    if (f & X86_CF)
+        __asm__ __volatile__ ("stc; adc al,[edx]; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(&memory[hl]));
+    else
+        __asm__ __volatile__ ("clc; adc al,[edx]; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(&memory[hl]));
+
+    f = 0;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+}
+
+static void adc_a_a(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("ADC A, A: A == 0x%02X\n", (unsigned)a);
+    #endif
+    if (f & X86_CF)
+        __asm__ __volatile__ ("stc; adc al,al; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a));
+    else
+        __asm__ __volatile__ ("clc; adc al,al; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a));
+
+    f = 0;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+}
+
 static void sub_a_b(void)
 {
     uint32_t eflags;
@@ -1370,7 +1687,7 @@ static void sub_a_b(void)
     #ifdef DUMP
     printf("SUB A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
     #endif
-    __asm__ __volatile__ ("sub al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "b"(b));
+    __asm__ __volatile__ ("sub al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(b));
 
     f = FLAG_SUB;
     if (eflags & X86_ZF)
@@ -1381,13 +1698,480 @@ static void sub_a_b(void)
         f |= FLAG_HCRY;
 }
 
+static void sub_a_c(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("SUB A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
+    #endif
+    __asm__ __volatile__ ("sub al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(c));
+
+    f = FLAG_SUB;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+}
+
+static void sub_a_d(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("SUB A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
+    #endif
+    __asm__ __volatile__ ("sub al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(d));
+
+    f = FLAG_SUB;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+}
+
+static void sub_a_e(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("SUB A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
+    #endif
+    __asm__ __volatile__ ("sub al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(e));
+
+    f = FLAG_SUB;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+}
+
+static void sub_a_h(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("SUB A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
+    #endif
+    __asm__ __volatile__ ("sub al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(h));
+
+    f = FLAG_SUB;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+}
+
+static void sub_a_l(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("SUB A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
+    #endif
+    __asm__ __volatile__ ("sub al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(l));
+
+    f = FLAG_SUB;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+}
+
+static void sub_a__hl(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("SUB A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
+    #endif
+    __asm__ __volatile__ ("sub al,[edx]; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(&memory[hl]));
+
+    f = FLAG_SUB;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+}
+
+static void sub_a_a(void)
+{
+    #ifdef DUMP
+    printf("SUB A, A: A == 0x%02X\n", (unsigned)a);
+    #endif
+
+    a = 0;
+    f = FLAG_SUB | FLAG_ZERO;
+}
+
+static void sbc_a_b(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("SBC A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
+    #endif
+    if (f & FLAG_CRY)
+        __asm__ __volatile__ ("stc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(b));
+    else
+        __asm__ __volatile__ ("clc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(b));
+
+    f = FLAG_SUB;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+}
+
+static void sbc_a_c(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("SBC A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
+    #endif
+    if (f & FLAG_CRY)
+        __asm__ __volatile__ ("stc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(c));
+    else
+        __asm__ __volatile__ ("clc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(c));
+
+    f = FLAG_SUB;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+}
+
+static void sbc_a_d(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("SBC A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
+    #endif
+    if (f & FLAG_CRY)
+        __asm__ __volatile__ ("stc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(d));
+    else
+        __asm__ __volatile__ ("clc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(d));
+
+    f = FLAG_SUB;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+}
+
+static void sbc_a_e(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("SBC A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
+    #endif
+    if (f & FLAG_CRY)
+        __asm__ __volatile__ ("stc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(e));
+    else
+        __asm__ __volatile__ ("clc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(e));
+
+    f = FLAG_SUB;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+}
+
+static void sbc_a_h(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("SBC A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
+    #endif
+    if (f & FLAG_CRY)
+        __asm__ __volatile__ ("stc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(h));
+    else
+        __asm__ __volatile__ ("clc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(h));
+
+    f = FLAG_SUB;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+}
+
+static void sbc_a_l(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("SBC A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
+    #endif
+    if (f & FLAG_CRY)
+        __asm__ __volatile__ ("stc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(l));
+    else
+        __asm__ __volatile__ ("clc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(l));
+
+    f = FLAG_SUB;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+}
+
+static void sbc_a__hl(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("SBC A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
+    #endif
+    if (f & FLAG_CRY)
+        __asm__ __volatile__ ("stc; sbb al,[edx]; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(&memory[hl]));
+    else
+        __asm__ __volatile__ ("clc; sbb al,[edx]; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(&memory[hl]));
+
+    f = FLAG_SUB;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+}
+
+static void sbc_a_a(void)
+{
+    #ifdef DUMP
+    printf("SUB A, A: A == 0x%02X\n", (unsigned)a);
+    #endif
+
+    if (f & FLAG_CRY)
+    {
+        a = 0xFF;
+        f = FLAG_SUB | FLAG_ZERO | FLAG_CRY | FLAG_HCRY;
+    }
+    else
+    {
+        a = 0;
+        f = FLAG_SUB | FLAG_ZERO;
+    }
+}
+
+static void and_a_b(void)
+{
+    #ifdef DUMP
+    printf("AND A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
+    #endif
+
+    a &= b;
+    if (a)
+        f = FLAG_HCRY;
+    else
+        f = FLAG_HCRY | FLAG_ZERO;
+}
+
+static void and_a_c(void)
+{
+    #ifdef DUMP
+    printf("AND A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
+    #endif
+
+    a &= c;
+    if (a)
+        f = FLAG_HCRY;
+    else
+        f = FLAG_HCRY | FLAG_ZERO;
+}
+
+static void and_a_d(void)
+{
+    #ifdef DUMP
+    printf("AND A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
+    #endif
+
+    a &= d;
+    if (a)
+        f = FLAG_HCRY;
+    else
+        f = FLAG_HCRY | FLAG_ZERO;
+}
+
+static void and_a_e(void)
+{
+    #ifdef DUMP
+    printf("AND A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
+    #endif
+
+    a &= e;
+    if (a)
+        f = FLAG_HCRY;
+    else
+        f = FLAG_HCRY | FLAG_ZERO;
+}
+
+static void and_a_h(void)
+{
+    #ifdef DUMP
+    printf("AND A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
+    #endif
+
+    a &= h;
+    if (a)
+        f = FLAG_HCRY;
+    else
+        f = FLAG_HCRY | FLAG_ZERO;
+}
+
+static void and_a_l(void)
+{
+    #ifdef DUMP
+    printf("AND A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
+    #endif
+
+    a &= l;
+    if (a)
+        f = FLAG_HCRY;
+    else
+        f = FLAG_HCRY | FLAG_ZERO;
+}
+
+static void and_a__hl(void)
+{
+    #ifdef DUMP
+    printf("AND A, (HL): A == 0x%02X; HL == 0x%42X\n", (unsigned)a, (unsigned)hl);
+    #endif
+
+    a &= memory[hl];
+    if (a)
+        f = FLAG_HCRY;
+    else
+        f = FLAG_HCRY | FLAG_ZERO;
+}
+
+static void and_a_a(void)
+{
+    #ifdef DUMP
+    printf("AND A, A: A == 0x%02X\n", (unsigned)a);
+    #endif
+
+    if (a)
+        f = FLAG_HCRY;
+    else
+        f = FLAG_HCRY | FLAG_ZERO;
+}
+
+static void xor_a_b(void)
+{
+    #ifdef DUMP
+    printf("XOR A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
+    #endif
+
+    a ^= b;
+    f = a ? 0 : FLAG_ZERO;
+}
+
+static void xor_a_c(void)
+{
+    #ifdef DUMP
+    printf("XOR A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
+    #endif
+
+    a ^= c;
+    f = a ? 0 : FLAG_ZERO;
+}
+
+static void xor_a_d(void)
+{
+    #ifdef DUMP
+    printf("XOR A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
+    #endif
+
+    a ^= d;
+    f = a ? 0 : FLAG_ZERO;
+}
+
+static void xor_a_e(void)
+{
+    #ifdef DUMP
+    printf("XOR A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
+    #endif
+
+    a ^= e;
+    f = a ? 0 : FLAG_ZERO;
+}
+
+static void xor_a_h(void)
+{
+    #ifdef DUMP
+    printf("XOR A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
+    #endif
+
+    a ^= h;
+    f = a ? 0 : FLAG_ZERO;
+}
+
+static void xor_a_l(void)
+{
+    #ifdef DUMP
+    printf("XOR A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
+    #endif
+
+    a ^= l;
+    f = a ? 0 : FLAG_ZERO;
+}
+
+static void xor_a__hl(void)
+{
+    #ifdef DUMP
+    printf("XOR A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
+    #endif
+
+    a ^= memory[hl];
+    f = a ? 0 : FLAG_ZERO;
+}
+
 static void xor_a_a(void)
 {
     #ifdef DUMP
     printf("XOR A, A: A == 0x%02X\n", (unsigned)a);
     #endif
+
     a = 0;
     f = FLAG_ZERO;
+}
+
+static void or_a_b(void)
+{
+    #ifdef DUMP
+    printf("OR A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
+    #endif
+
+    a |= b;
+    f = a ? 0 : FLAG_ZERO;
 }
 
 static void or_a_c(void)
@@ -1395,11 +2179,246 @@ static void or_a_c(void)
     #ifdef DUMP
     printf("OR A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
     #endif
+
     a |= c;
-    if (!a)
-        f = FLAG_ZERO;
+    f = a ? 0 : FLAG_ZERO;
+}
+
+static void or_a_d(void)
+{
+    #ifdef DUMP
+    printf("OR A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
+    #endif
+
+    a |= d;
+    f = a ? 0 : FLAG_ZERO;
+}
+
+static void or_a_e(void)
+{
+    #ifdef DUMP
+    printf("OR A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
+    #endif
+
+    a |= e;
+    f = a ? 0 : FLAG_ZERO;
+}
+
+static void or_a_h(void)
+{
+    #ifdef DUMP
+    printf("OR A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
+    #endif
+
+    a |= h;
+    f = a ? 0 : FLAG_ZERO;
+}
+
+static void or_a_l(void)
+{
+    #ifdef DUMP
+    printf("OR A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
+    #endif
+
+    a |= l;
+    f = a ? 0 : FLAG_ZERO;
+}
+
+static void or_a__hl(void)
+{
+    #ifdef DUMP
+    printf("OR A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
+    #endif
+
+    a |= memory[hl];
+    f = a ? 0 : FLAG_ZERO;
+}
+
+static void or_a_a(void)
+{
+    #ifdef DUMP
+    printf("OR A, A: A == 0x%02X\n", (unsigned)a);
+    #endif
+
+    f = a ? 0 : FLAG_ZERO;
+}
+
+static void cp_a_b(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("CP A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
+    #endif
+
+    f = FLAG_SUB;
+    __asm__ __volatile__ ("cmp al,dl; pushfd; pop eax" : "=a"(eflags) : "a"(a), "d"(b));
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+}
+
+static void cp_a_c(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("CP A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
+    #endif
+
+    f = FLAG_SUB;
+    __asm__ __volatile__ ("cmp al,dl; pushfd; pop eax" : "=a"(eflags) : "a"(a), "d"(c));
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+}
+
+static void cp_a_d(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("CP A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
+    #endif
+
+    f = FLAG_SUB;
+    __asm__ __volatile__ ("cmp al,dl; pushfd; pop eax" : "=a"(eflags) : "a"(a), "d"(d));
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+}
+
+static void cp_a_e(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("CP A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
+    #endif
+
+    f = FLAG_SUB;
+    __asm__ __volatile__ ("cmp al,dl; pushfd; pop eax" : "=a"(eflags) : "a"(a), "d"(e));
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+}
+
+static void cp_a_h(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("CP A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
+    #endif
+
+    f = FLAG_SUB;
+    __asm__ __volatile__ ("cmp al,dl; pushfd; pop eax" : "=a"(eflags) : "a"(a), "d"(h));
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+}
+
+static void cp_a_l(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("CP A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
+    #endif
+
+    f = FLAG_SUB;
+    __asm__ __volatile__ ("cmp al,dl; pushfd; pop eax" : "=a"(eflags) : "a"(a), "d"(l));
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+}
+
+static void cp_a__hl(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("CP A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
+    #endif
+
+    f = FLAG_SUB;
+    __asm__ __volatile__ ("cmp al,[edx]; pushfd; pop eax" : "=a"(eflags) : "a"(a), "d"(&memory[hl]));
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+}
+
+static void cp_a_a(void)
+{
+    #ifdef DUMP
+    printf("CP A, A: A == 0x%02X\n", (unsigned)a);
+    #endif
+
+    f = FLAG_SUB | FLAG_ZERO;
+}
+
+static void retnz(void)
+{
+    if (!(f & FLAG_ZERO))
+    {
+        #ifdef DUMP
+        printf("RETNZ, returning\n");
+        #endif
+        ret();
+    }
     else
-        f = 0;
+    {
+        #ifdef DUMP
+        printf("RETNZ, staying\n");
+        #endif
+    }
+}
+
+static void pop_bc(void)
+{
+    #ifdef DUMP
+    printf("POP BC: BC == 0x%04X\n", bc);
+    #endif
+    bc = pop();
+}
+
+static void jpnz(void)
+{
+    if (!(f & FLAG_ZERO))
+    {
+        #ifdef DUMP
+        printf("JPNZ, branching\n");
+        #endif
+        jp();
+    }
+    else
+    {
+        #ifdef DUMP
+        printf("JPNZ, staying\n");
+        #endif
+        ip += 2;
+    }
 }
 
 static void jp(void)
@@ -1408,6 +2427,76 @@ static void jp(void)
     printf("JP 0x%04X: IP == 0x%04X\n", (unsigned)nn, (unsigned)(ip - 1));
     #endif
     ip = nn;
+}
+
+static void callnz(void)
+{
+    if (!(f & FLAG_ZERO))
+    {
+        #ifdef DUMP
+        printf("CALLNZ, calling\n");
+        #endif
+        call();
+    }
+    else
+    {
+        #ifdef DUMP
+        printf("CALLNZ, staying\n");
+        #endif
+        ip += 2;
+    }
+}
+
+static void push_bc(void)
+{
+    #ifdef DUMP
+    printf("PUSH BC: BC == 0x%04X\n", bc);
+    #endif
+    push(bc);
+}
+
+static void add_a_s(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("ADD A, 0x%02X: A == 0x%02X\n", (unsigned)memory[ip], (unsigned)a);
+    #endif
+    __asm__ __volatile__ ("add al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(memory[ip++]));
+
+    f = 0;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+}
+
+static void rst0x00(void)
+{
+    #ifdef DUMP
+    printf("RST $00: IP == 0x%04X\n", (unsigned)ip - 1);
+    #endif
+    push(ip);
+    ip = 0x0000;
+}
+
+static void retz(void)
+{
+    if (f & FLAG_ZERO)
+    {
+        #ifdef DUMP
+        printf("RETZ, returning\n");
+        #endif
+        ret();
+    }
+    else
+    {
+        #ifdef DUMP
+        printf("RETZ, staying\n");
+        #endif
+    }
 }
 
 static void ret(void)
@@ -1419,6 +2508,24 @@ static void ret(void)
     #ifdef DUMP
     printf("RET: 0x%04X → 0x%04X\n", (unsigned)old_ip, (unsigned)ip);
     #endif
+}
+
+static void jpz(void)
+{
+    if (f & FLAG_ZERO)
+    {
+        #ifdef DUMP
+        printf("JPZ, branching\n");
+        #endif
+        jp();
+    }
+    else
+    {
+        #ifdef DUMP
+        printf("JPZ, staying\n");
+        #endif
+        ip += 2;
+    }
 }
 
 static void prefix0xCB(void)
@@ -1433,6 +2540,24 @@ static void prefix0xCB(void)
     handle0xCB[(int)memory[ip - 1]]();
 }
 
+static void callz(void)
+{
+    if (f & FLAG_ZERO)
+    {
+        #ifdef DUMP
+        printf("CALLZ, calling\n");
+        #endif
+        call();
+    }
+    else
+    {
+        #ifdef DUMP
+        printf("CALLZ, staying\n");
+        #endif
+        ip += 2;
+    }
+}
+
 static void call(void)
 {
     #ifdef DUMP
@@ -1440,6 +2565,36 @@ static void call(void)
     #endif
     push(ip + 2);
     ip = nn;
+}
+
+static void adc_a_s(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("ADC A, 0x%02X: A == 0x%02X\n", (unsigned)memory[ip], (unsigned)a);
+    #endif
+    if (f & FLAG_CRY)
+        __asm__ __volatile__ ("stc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(memory[ip++]));
+    else
+        __asm__ __volatile__ ("clc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(memory[ip++]));
+
+    f = 0;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+}
+
+static void rst0x08(void)
+{
+    #ifdef DUMP
+    printf("RST $08: IP == 0x%04X\n", (unsigned)ip - 1);
+    #endif
+    push(ip);
+    ip = 0x0008;
 }
 
 static void retnc(void)
@@ -1459,12 +2614,247 @@ static void retnc(void)
     }
 }
 
+static void pop_de(void)
+{
+    #ifdef DUMP
+    printf("POP DE: DE == 0x%04X\n", (unsigned)de);
+    #endif
+    de = pop();
+}
+
+static void jpnc(void)
+{
+    if (!(f & FLAG_CRY))
+    {
+        #ifdef DUMP
+        printf("JPNC, branching\n");
+        #endif
+        jp();
+    }
+    else
+    {
+        #ifdef DUMP
+        printf("JPNC, staying\n");
+        #endif
+        ip += 2;
+    }
+}
+
+static void callnc(void)
+{
+    if (!(f & FLAG_CRY))
+    {
+        #ifdef DUMP
+        printf("CALLNC, calling\n");
+        #endif
+        call();
+    }
+    else
+    {
+        #ifdef DUMP
+        printf("CALLNC, staying\n");
+        #endif
+        ip += 2;
+    }
+}
+
+static void push_de(void)
+{
+    #ifdef DUMP
+    printf("PUSH DE: DE == 0x%04X\n", (unsigned)de);
+    #endif
+    push(de);
+}
+
+static void sub_a_s(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("SUB A, 0x%02X: A == 0x%02X\n", (unsigned)memory[ip], (unsigned)a);
+    #endif
+    __asm__ __volatile__ ("sub al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(memory[ip++]));
+
+    f = FLAG_SUB;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+}
+
+static void ret0x10(void)
+{
+    #ifdef DUMP
+    printf("RST $10: IP == 0x%04X\n", (unsigned)ip - 1);
+    #endif
+    push(ip);
+    ip = 0x0010;
+}
+
+static void retc(void)
+{
+    if (f & FLAG_CRY)
+    {
+        #ifdef DUMP
+        printf("RETC, returning\n");
+        #endif
+        ret();
+    }
+    else
+    {
+        #ifdef DUMP
+        printf("RETC, staying\n");
+        #endif
+    }
+}
+
+static void reti(void)
+{
+    #ifdef DUMP
+    printf("RETI\n");
+    #endif
+
+    want_ints_to_be = 1;
+    ints_enabled = 1;
+    ret();
+}
+
+static void jpc(void)
+{
+    if (f & FLAG_CRY)
+    {
+        #ifdef DUMP
+        printf("JPC, branching\n");
+        #endif
+        jp();
+    }
+    else
+    {
+        #ifdef DUMP
+        printf("JPC, staying\n");
+        #endif
+        ip += 2;
+    }
+}
+
+static void callc(void)
+{
+    if (f & FLAG_CRY)
+    {
+        #ifdef DUMP
+        printf("CALLC, calling\n");
+        #endif
+        call();
+    }
+    else
+    {
+        #ifdef DUMP
+        printf("CALLC, staying\n");
+        #endif
+        ip += 2;
+    }
+}
+
+static void sbc_a_s(void)
+{
+    uint32_t eflags;
+
+    #ifdef DUMP
+    printf("SBC A, 0x%02X: A == 0x%02X\n", (unsigned)a, (unsigned)memory[ip]);
+    #endif
+    if (f & FLAG_CRY)
+        __asm__ __volatile__ ("stc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(memory[ip++]));
+    else
+        __asm__ __volatile__ ("clc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(memory[ip++]));
+
+    f = FLAG_SUB;
+    if (eflags & X86_ZF)
+        f |= FLAG_ZERO;
+    if (eflags & X86_CF)
+        f |= FLAG_CRY;
+    if (eflags & X86_AF)
+        f |= FLAG_HCRY;
+}
+
+static void rst0x18(void)
+{
+    #ifdef DUMP
+    printf("RST $18: IP == 0x%04X\n", (unsigned)ip - 1);
+    #endif
+    push(ip);
+    ip = 0x0018;
+}
+
 static void ld__ffn_a(void)
 {
     #ifdef DUMP
     printf("LD ($FF00 + 0x%02X), A: A == 0x%02X\n", (unsigned)memory[ip], (unsigned)a);
     #endif
     mem_writeb(0xFF00 + memory[ip++], a);
+}
+
+static void pop_hl(void)
+{
+    #ifdef DUMP
+    printf("POP HL: HL == 0x%04X\n", (unsigned)hl);
+    #endif
+    hl = pop();
+}
+
+static void ld__ffc_a(void)
+{
+    #ifdef DUMP
+    printf("LD ($FF00 + C), A: C == 0x%02X; A == 0x%02X\n", (unsigned)c, (unsigned)a);
+    #endif
+    mem_writeb(0xFF00 + c, a);
+}
+
+static void push_hl(void)
+{
+    #ifdef DUMP
+    printf("PUSH HL: HL == 0x%04X\n", (unsigned)hl);
+    #endif
+    push(hl);
+}
+
+static void and_a_s(void)
+{
+    #ifdef DUMP
+    printf("AND A, 0x%02X: A == 0x%02X\n", (unsigned)memory[ip], (unsigned)a);
+    #endif
+
+    a &= memory[ip++];
+    if (a)
+        f = FLAG_HCRY;
+    else
+        f = FLAG_HCRY | FLAG_ZERO;
+}
+
+static void rst0x20(void)
+{
+    #ifdef DUMP
+    printf("RST $20: IP == 0x%04X\n", (unsigned)ip - 1);
+    #endif
+    push(ip);
+    ip = 0x0020;
+}
+
+static void add_sp_s(void)
+{
+    #ifdef DUMP
+    printf("ADD SP, %i: SP == 0x%04X\n", (int)(signed char)memory[ip], sp);
+    #endif
+    sp += (int)(signed char)memory[ip++];
+}
+
+static void jp__hl(void)
+{
+    #ifdef DUMP
+    printf("JP (HL): HL == 0x%04X; IP == 0x%04X\n", (unsigned)hl, (unsigned)ip);
+    #endif
+    ip = hl;
 }
 
 static void ld__nn_a(void)
@@ -1476,12 +2866,47 @@ static void ld__nn_a(void)
     ip += 2;
 }
 
+static void xor_a_s(void)
+{
+    #ifdef DUMP
+    printf("XOR A, 0x%02X: A == 0x%02X\n", (unsigned)memory[ip], (unsigned)a);
+    #endif
+
+    a ^= memory[ip++];
+    f = a ? 0 : FLAG_ZERO;
+}
+
+static void rst0x28(void)
+{
+    #ifdef DUMP
+    printf("RST $28: IP == 0x%04X\n", (unsigned)ip - 1);
+    #endif
+    push(ip);
+    ip = 0x0028;
+}
+
 static void ld_a__ffn(void)
 {
     #ifdef DUMP
     printf("LD A, ($FF00 + 0x%02X): A == 0x%02X\n", (unsigned)memory[ip], (unsigned)a);
     #endif
-    a = memory[0xFF00 + memory[ip++]];
+    a = memory[0xFF00 + (unsigned)memory[ip++]];
+}
+
+static void pop_af(void)
+{
+    #ifdef DUMP
+    printf("POP AF: AF == 0x%04X\n", af);
+    #endif
+    af = pop();
+}
+
+static void ld_a__ffc(void)
+{
+    #ifdef DUMP
+    printf("LD A, ($FF00 + C): A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
+    #endif
+    a = memory[0xFF00 + (unsigned)c];
 }
 
 static void di_(void)
@@ -1490,6 +2915,70 @@ static void di_(void)
     printf("DI: Interrupts %s\n", ints_enabled ? "enabled" : "disabled");
     #endif
     want_ints_to_be = 0;
+}
+
+static void push_af(void)
+{
+    #ifdef DUMP
+    printf("PUSH AF: AF == 0x%04X\n", (unsigned)af);
+    #endif
+    push(af);
+}
+
+static void or_a_s(void)
+{
+    #ifdef DUMP
+    printf("OR A, 0x%02X: A == 0x%02X\n", (unsigned)memory[ip], (unsigned)a);
+    #endif
+
+    a |= memory[ip++];
+    f = a ? 0 : FLAG_ZERO;
+}
+
+static void rst0x30(void)
+{
+    #ifdef DUMP
+    printf("RST $30: IP == 0x%04X\n", (unsigned)ip - 1);
+    #endif
+    push(ip);
+    ip = 0x0030;
+}
+
+static void ld_hl_spn(void)
+{
+    int result;
+
+    #ifdef DUMP
+    printf("LD HL, SP + %i: HL == 0x%04X; SP == 0x%04X\n", (int)(signed char)memory[ip], (unsigned)hl, (unsigned)sp);
+    #endif
+
+    result = sp + (int)(signed char)memory[ip++];
+
+    f = 0;
+    if (result & ~0xFFFF)
+        f |= FLAG_CRY;
+    result &= 0xFFFF;
+    if ((hl & 0xFFF) + (bc & 0xFFF) > 0xFFF)
+        f |= FLAG_HCRY;
+
+    hl = result;
+}
+
+static void ld_sp_hl(void)
+{
+    #ifdef DUMP
+    printf("LD SP, HL: SP == 0x%04X; HL == 0x%04X\n", (unsigned)sp, (unsigned)hl);
+    #endif
+    sp = hl;
+}
+
+static void ld_a__nn(void)
+{
+    #ifdef DUMP
+    printf("LD A, (0x%04X): A == 0x%02X\n", (unsigned)nn, (unsigned)a);
+    #endif
+    a = memory[nn];
+    ip += 2;
 }
 
 static void ei_(void)
@@ -1507,8 +2996,9 @@ static void cp_s(void)
     #ifdef DUMP
     printf("CP A, 0x%02X: A == 0x%02X\n", (unsigned)memory[ip], (unsigned)a);
     #endif
+
     f = FLAG_SUB;
-    __asm__ __volatile__ ("cmp al,bl; pushfd; pop eax" : "=a"(eflags) : "a"(a), "b"(memory[ip++]));
+    __asm__ __volatile__ ("cmp al,dl; pushfd; pop eax" : "=a"(eflags) : "a"(a), "d"(memory[ip++]));
     if (eflags & X86_ZF)
         f |= FLAG_ZERO;
     if (eflags & X86_CF)
@@ -1673,129 +3163,129 @@ static void (*handle[256])(void) =
     &ld_a_l,
     &ld_a__hl,
     &ld_a_a,
-    NULL,           // 0x80
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,           // 0x88
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
+    &add_a_b,       // 0x80
+    &add_a_c,
+    &add_a_d,
+    &add_a_e,
+    &add_a_h,
+    &add_a_l,
+    &add_a__hl,
+    &add_a_a,
+    &adc_a_b,       // 0x88
+    &adc_a_c,
+    &adc_a_d,
+    &adc_a_e,
+    &adc_a_h,
+    &adc_a_l,
+    &adc_a__hl,
+    &adc_a_a,
     &sub_a_b,       // 0x90
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,           // 0x98
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,           // 0xA0
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,           // 0xA8
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
+    &sub_a_c,
+    &sub_a_d,
+    &sub_a_e,
+    &sub_a_h,
+    &sub_a_l,
+    &sub_a__hl,
+    &sub_a_a,
+    &sbc_a_b,       // 0x98
+    &sbc_a_c,
+    &sbc_a_d,
+    &sbc_a_e,
+    &sbc_a_h,
+    &sbc_a_l,
+    &sbc_a__hl,
+    &sbc_a_a,
+    &and_a_b,       // 0xA0
+    &and_a_c,
+    &and_a_d,
+    &and_a_e,
+    &and_a_h,
+    &and_a_l,
+    &and_a__hl,
+    &and_a_a,
+    &xor_a_b,       // 0xA8
+    &xor_a_c,
+    &xor_a_d,
+    &xor_a_e,
+    &xor_a_h,
+    &xor_a_l,
+    &xor_a__hl,
     &xor_a_a,
-    NULL,           // 0xB0
+    &or_a_b,        // 0xB0
     &or_a_c,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,           // 0xB8
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,           // 0xC0
-    NULL,
-    NULL,
+    &or_a_d,
+    &or_a_e,
+    &or_a_h,
+    &or_a_l,
+    &or_a__hl,
+    &or_a_a,
+    &cp_a_b,        // 0xB8
+    &cp_a_c,
+    &cp_a_d,
+    &cp_a_e,
+    &cp_a_h,
+    &cp_a_l,
+    &cp_a__hl,
+    &cp_a_a,
+    &retnz,         // 0xC0
+    &pop_bc,
+    &jpnz,
     &jp,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,           // 0xC8
+    &callnz,
+    &push_bc,
+    &add_a_s,
+    &rst0x00,
+    &retz,          // 0xC8
     &ret,
-    NULL,
+    &jpz,
     &prefix0xCB,
-    NULL,
+    &callz,
     &call,
-    NULL,
-    NULL,
+    &adc_a_s,
+    &rst0x08,
     &retnc,         // 0xD0
+    &pop_de,
+    &jpnc,
     NULL,
+    &callnc,
+    &push_de,
+    &sub_a_s,
+    &ret0x10,
+    &retc,          // 0xD8
+    &reti,
+    &jpc,
     NULL,
+    &callc,
     NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,           // 0xD8
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
+    &sbc_a_s,
+    &rst0x18,
     &ld__ffn_a,     // 0xE0
+    &pop_hl,
+    &ld__ffc_a,
     NULL,
     NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,           // 0xE8
-    NULL,
+    &push_hl,
+    &and_a_s,
+    &rst0x20,
+    &add_sp_s,      // 0xE8
+    &jp__hl,
     &ld__nn_a,
     NULL,
     NULL,
     NULL,
-    NULL,
-    NULL,
+    &xor_a_s,
+    &rst0x28,
     &ld_a__ffn,     // 0xF0
-    NULL,
-    NULL,
+    &pop_af,
+    &ld_a__ffc,
     &di_,
     NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,           // 0xF8
-    NULL,
-    NULL,
+    &push_af,
+    &or_a_s,
+    &rst0x30,
+    &ld_hl_spn,     // 0xF8
+    &ld_sp_hl,
+    &ld_a__nn,
     &ei_,
     NULL,
     NULL,
