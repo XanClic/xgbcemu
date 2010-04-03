@@ -120,29 +120,29 @@ void mem_writeb(uintptr_t addr, uint8_t value)
     printf("0x%02X -> 0x%04X\n", (unsigned)value, (unsigned)addr);
     #endif
 
-    if (((addr >= 0xFF00) && (addr <= 0xFF55)) || ((addr >= 0xFF68) && (addr <= 0xFF70)) || (addr == 0xFFFF))
+    if ((addr >= 0x8000) && (addr < 0xFE00))
+    {
+        if (addr >= 0xC000)
+        {
+            if (addr & 0x1000)
+                int_wram[addr & 0x0FFF] = value;
+            else
+                int_ram[addr & 0x0FFF] = value;
+        }
+        else if (addr < 0xA000)
+            vidram[addr - 0x8000] = value;
+        else
+        {
+            if (ext_ram_ptr != NULL)
+                ext_ram_ptr[addr - 0xA000] = value;
+            else
+                cart_ram_write[mbc](addr - 0xA000, value);
+        }
+    }
+    else if (((addr >= 0xFF00) && (addr <= 0xFF55)) || ((addr >= 0xFF68) && (addr <= 0xFF70)) || (addr == 0xFFFF))
         io_outb((uint8_t)(addr - 0xFF00), value);
     else if (addr >= 0xFE00)
         oam_io[addr - 0xFE00] = value;
-    else if (addr >= 0xC000)
-    {
-        if (addr & 0x1000)
-            int_wram[addr & 0x0FFF] = value;
-        else
-            int_ram[addr & 0x0FFF] = value;
-    }
-    else if (addr >= 0xA000)
-    {
-        if (ext_ram_ptr != NULL)
-            ext_ram_ptr[addr - 0xA000] = value;
-        else
-            cart_ram_write[mbc](addr - 0xA000, value);
-    }
-    else if (addr >= 0x8000)
-    {
-        // printf("[VMEM] 0x%02X -> 0x%04X\n", (unsigned)value, (unsigned)addr);
-        vidram[addr - 0x8000] = value;
-    }
     else
     {
         if (!mbc)
@@ -167,32 +167,34 @@ uint8_t mem_readb(uintptr_t addr)
 uint8_t mem_readb_(uintptr_t addr)
 #endif
 {
-    if (addr >= 0xFE00)
+    if (addr < 0x8000)
+    {
+        if (addr < 0x4000)
+        {
+            if (base_rom_ptr == NULL)
+                return cart_rom_read[mbc](addr);
+            return base_rom_ptr[addr];
+        }
+        if (rom_bank_ptr == NULL)
+            return cart_rom_read[mbc](addr);
+        return rom_bank_ptr[addr - 0x4000];
+    }
+    else if (addr >= 0xFE00)
         return oam_io[addr - 0xFE00];
-    if (addr >= 0xC000)
+    else if (addr >= 0xC000)
     {
         if (addr & 0x1000)
             return int_wram[addr & 0x0FFF];
-        else
-            return int_ram[addr & 0x0FFF];
+        return int_ram[addr & 0x0FFF];
     }
-    if (addr >= 0xA000)
+    else if (addr < 0xA000)
+        return vidram[addr - 0x8000];
+    else
     {
         if (ext_ram_ptr == NULL)
             return cart_ram_read[mbc](addr - 0xA000);
         return ext_ram_ptr[addr - 0xA000];
     }
-    if (addr >= 0x8000)
-        return vidram[addr - 0x8000];
-    if (addr >= 0x4000)
-    {
-        if (rom_bank_ptr == NULL)
-            return cart_rom_read[mbc](addr);
-        return rom_bank_ptr[addr - 0x4000];
-    }
-    if (base_rom_ptr == NULL)
-        return cart_rom_read[mbc](addr);
-    return base_rom_ptr[addr];
 }
 
 #ifdef DUMP

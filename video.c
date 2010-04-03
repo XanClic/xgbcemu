@@ -16,7 +16,7 @@ void redraw_alrm(int signum);
 static uint32_t resolutions[10];
 static uint64_t old_rdtsc = 0;
 
-#define DISPLAY_ALL
+// #define DISPLAY_ALL
 
 void init_video(void)
 {
@@ -101,17 +101,72 @@ void init_video(void)
     timer_delete(redraw_timer);
 }
 
-void redraw(void)
+static void draw_bg_line(int line, int bit7val)
 {
-    // static volatile int redrawing = 0;
+    int by = line & 0xF8, ry = line & 0x07;
+    int tile = by * 4;
+
+    line *= 256;
+
+    for (int bx = 0; bx < 256; bx += 8)
+    {
+        int flags = btm[1][tile];
+
+        if ((flags & (1 << 7)) != bit7val)
+        {
+            tile++;
+            continue;
+        }
+
+        uint8_t *tdat;
+        int vbank = !!(flags & (1 << 3));
+        uint16_t *pal = &bpalette[(flags & 7) * 4];
+
+        if (bwtd[0] == (uint8_t *)&full_vidram[0x0000])
+            tdat = &bwtd[vbank][(unsigned)btm[0][tile] * 16];
+        else
+            tdat = &bwtd[vbank][(int)(int8_t)btm[0][tile] * 16];
+
+        for (int rx = 0; rx < 8; rx++)
+        {
+            int val;
+            switch (flags & (3 << 5))
+            {
+                case (0 << 5):
+                    val = !!(tdat[ry * 2] & (1 << (7 - rx)));
+                    val += !!(tdat[ry * 2 + 1] & (1 << (7 - rx))) << 1;
+                    break;
+                case (1 << 5):
+                    val = !!(tdat[ry * 2] & (1 << rx));
+                    val += !!(tdat[ry * 2 + 1] & (1 << rx)) << 1;
+                    break;
+                case (2 << 5):
+                    val = !!(tdat[(7 - ry) * 2] & (1 << (7 - rx)));
+                    val += !!(tdat[(7 - ry) * 2 + 1] & (1 << (7 - rx))) << 1;
+                    break;
+                default:
+                    val = !!(tdat[(7 - ry) * 2] & (1 << rx));
+                    val += !!(tdat[(7 - ry) * 2 + 1] & (1 << rx)) << 1;
+            }
+
+            ((uint32_t *)vidmem)[line + bx + rx] = pal2rgb(pal[val]);
+        }
+
+        tile++;
+    }
+}
+
+void draw_line(int line)
+{
     struct
     {
         uint8_t y, x;
         uint8_t num;
         uint8_t flags;
     } __attribute__((packed)) *oam = (void *)oam_io;
-    uint8_t *btm[2], *bwtd[2], *wtm;
     SDL_Event evt;
+    int sx = io_regs->scx, sy = io_regs->scy;
+    int abs_line = (line + sy) & 0xFF;
 
     while (SDL_PollEvent(&evt))
         if (evt.type == SDL_QUIT)
@@ -120,68 +175,10 @@ void redraw(void)
     if (!(io_regs->lcdc & (1 << 7)))
         return;
 
-    /*if (redrawing++)
-    {
-        redrawing--;
-        return;
-    }*/
-
-    if (io_regs->lcdc & (1 << 3))
-    {
-        btm[0] = (uint8_t *)&full_vidram[0x1C00];
-        btm[1] = (uint8_t *)&full_vidram[0x3C00];
-    }
+    if (!(io_regs->lcdc & (1 << 0)))
+        memset((uint32_t *)vidmem + abs_line * 256, 0, 256 * 4);
     else
-    {
-        btm[0] = (uint8_t *)&full_vidram[0x1800];
-        btm[1] = (uint8_t *)&full_vidram[0x3800];
-    }
-
-    if (io_regs->lcdc & (1 << 4))
-    {
-        bwtd[0] = (uint8_t *)&full_vidram[0x0000];
-        bwtd[1] = (uint8_t *)&full_vidram[0x2000];
-    }
-    else
-    {
-        bwtd[0] = (uint8_t *)&full_vidram[0x1000];
-        bwtd[1] = (uint8_t *)&full_vidram[0x3000];
-    }
-
-    if (io_regs->lcdc & (1 << 6))
-        wtm = (uint8_t *)&vidram[0x1C00];
-    else
-        wtm = (uint8_t *)&vidram[0x1800];
-
-    int tile = 0;
-    for (int by = 0; by < 256; by += 8)
-    {
-        for (int bx = 0; bx < 256; bx += 8)
-        {
-            uint8_t *tdat;
-            int vbank = !!(btm[1][tile] & (1 << 3));
-            uint16_t *pal = &bpalette[(btm[1][tile] & 7) * 4];
-
-            if (bwtd[0] == (uint8_t *)&full_vidram[0x0000])
-                tdat = &bwtd[vbank][(unsigned)btm[0][tile] * 64];
-            else
-                tdat = &bwtd[vbank][(int)(int8_t)btm[0][tile] * 64];
-
-            for (int ry = 0; ry < 8; ry++)
-            {
-                for (int rx = 0; rx < 8; rx++)
-                {
-                    int val;
-                    val = !!(tdat[ry * 2] & (1 << (8 - rx)));
-                    val += !!(tdat[ry * 2 + 1] & (1 << (8 - rx))) << 1;
-
-                    ((uint32_t *)vidmem)[(by + ry) * 256 + bx + rx] = pal2rgb(pal[val]);
-                }
-            }
-
-            tile++;
-        }
-    }
+        draw_bg_line(abs_line, 0 << 7);
 
     if ((io_regs->lcdc & (1 << 5)) && (io_regs->wx >= 7) && (io_regs->wx <= 166) && (io_regs->wy <= 143))
     {
@@ -191,41 +188,91 @@ void redraw(void)
 
     if (io_regs->lcdc & (1 << 1))
     {
-        // printf("FUCK YÆH!\n");
+        int obj_height = (io_regs->lcdc & (1 << 2)) ? 16 : 8;
+        int count = 0;
+
         for (int sprite = 0; sprite < 40; sprite++)
         {
-            // printf("%i: (%i | %i) as %i\n", sprite, oam[sprite].x, oam[sprite].y, oam[sprite].num);
-            if (!oam[sprite].x || !oam[sprite].y || (oam[sprite].x >= 160 + 8) || (oam[sprite].y >= 144 + 16))
+            uint8_t *tdat;
+            int bx = oam[sprite].x, by = oam[sprite].y, flags = oam[sprite].flags;
+            uint16_t *pal = &opalette[(flags & 7) * 4];
+
+            bx -= 8;
+            by -= 16;
+
+            if ((bx <= -8) || (by > line) || (bx >= 160) || (by + obj_height <= line))
                 continue;
+
+            int ry = line - by;
+
+            if (obj_height == 8)
+            {
+                if (flags & (1 << 3))
+                    tdat = &full_vidram[0x0000 + oam[sprite].num * 16];
+                else
+                    tdat = &full_vidram[0x2000 + oam[sprite].num * 16];
+            }
+            else
+            {
+                if (flags & (1 << 3))
+                    tdat = &full_vidram[0x0000 + (oam[sprite].num & 0xFE) * 16];
+                else
+                    tdat = &full_vidram[0x2000 + (oam[sprite].num & 0xFE) * 16];
+            }
+
+            bx += sx;
+            by += sy;
+
+            for (int rx = 0; rx < 8; rx++)
+            {
+                if (bx + rx >= 256)
+                    continue;
+
+                int val;
+                val = !!(tdat[ry * 2] & (1 << (7 - rx)));
+                val += !!(tdat[ry * 2 + 1] & (1 << (7 - rx))) << 1;
+
+                // if (val)
+                    ((uint32_t *)vidmem)[abs_line * 256 + bx + rx] = pal2rgb(pal[val]);
+            }
+
+            if (++count >= 10)
+                break;
         }
         // exit(0);
     }
 
-    SDL_LockSurface(screen);
-    #ifndef DISPLAY_ALL
-    for (int y = 0; y < 144; y++)
-    {
-        for (int x = 0; x < 160; x++)
-        {
-            int px = (x + io_regs->scx) & 0xFF;
-            int py = (y + io_regs->scy) & 0xFF;
-            uint32_t col = ((uint32_t *)vidmem)[py * 256 + px];
-            ((uint32_t *)screen->pixels)[y * 160 + x] = SDL_MapRGB(screen->format, (col & 0xFF0000) >> 16, (col & 0xFF00) >> 8, col & 0xFF);
-        }
-    }
-    #else
-    for (int y = 0; y < 256; y++)
-    {
-        for (int x = 0; x < 256; x++)
-        {
-            uint32_t col = ((uint32_t *)vidmem)[y * 256 + x];
-            ((uint32_t *)screen->pixels)[y * 256 + x] = SDL_MapRGB(screen->format, (col & 0xFF0000) >> 16, (col & 0xFF00) >> 8, col & 0xFF);
-        }
-    }
-    #endif
-    SDL_UnlockSurface(screen);
+    if (io_regs->lcdc & (1 << 0))
+        draw_bg_line(abs_line, 1 << 7);
 
-    SDL_UpdateRect(screen, 0, 0, 0, 0);
+    if (line == 143)
+    {
+        SDL_LockSurface(screen);
+        #ifndef DISPLAY_ALL
+        for (int y = 0; y < 144; y++)
+        {
+            for (int x = 0; x < 160; x++)
+            {
+                int px = (x + io_regs->scx) & 0xFF;
+                int py = (y + io_regs->scy) & 0xFF;
+                uint32_t col = ((uint32_t *)vidmem)[py * 256 + px];
+                ((uint32_t *)screen->pixels)[y * 160 + x] = SDL_MapRGB(screen->format, (col & 0xFF0000) >> 16, (col & 0xFF00) >> 8, col & 0xFF);
+            }
+        }
+        #else
+        for (int y = 0; y < 256; y++)
+        {
+            for (int x = 0; x < 256; x++)
+            {
+                uint32_t col = ((uint32_t *)vidmem)[y * 256 + x];
+                ((uint32_t *)screen->pixels)[y * 256 + x] = SDL_MapRGB(screen->format, (col & 0xFF0000) >> 16, (col & 0xFF00) >> 8, col & 0xFF);
+            }
+        }
+        #endif
+        SDL_UnlockSurface(screen);
+
+        SDL_UpdateRect(screen, 0, 0, 0, 0);
+    }
 
     // redrawing--;
 }

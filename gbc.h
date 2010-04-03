@@ -84,6 +84,7 @@ extern int mbc, ext_ram, rtc, batt, rmbl;
 extern uint8_t *ext_ram_ptr, *rom_bank_ptr, *base_rom_ptr;
 extern uint8_t *int_ram, *oam_io, *vidram, *int_wram, *full_int_wram, *full_vidram;
 extern uint16_t bpalette[32], opalette[32];
+extern uint8_t *btm[2], *bwtd[2], *wtm;
 extern int hdma_on;
 #define ip _ip
 #define sp _sp
@@ -139,6 +140,7 @@ static inline int pal2rgb(int pal)
 }
 
 
+void draw_line(int line);
 void generate_interrupts(void);
 void hdma_copy_16b(void);
 void init_memory(void);
