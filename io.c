@@ -18,12 +18,6 @@ static void int_enable(uint8_t value)
     generate_interrupts();
 }
 
-static void store_and_redraw(uint8_t value, int offset)
-{
-    oam_io[0x100 + offset] = value;
-    redraw();
-}
-
 static void nop(uint8_t value, int offset)
 {
     oam_io[0x100 + offset] = value;
@@ -32,10 +26,38 @@ static void nop(uint8_t value, int offset)
 static void lcdc(uint8_t value)
 {
     io_regs->lcdc = value;
-    if (!(value & (1 << 7)))
-        lcd_on = 0;
-    else
+
+    if (value & (1 << 7))
         lcd_on = 1;
+    else
+        lcd_on = 0;
+
+    if (value & (1 << 6))
+        wtm = (uint8_t *)&vidram[0x1C00];
+    else
+        wtm = (uint8_t *)&vidram[0x1800];
+
+    if (value & (1 << 4))
+    {
+        bwtd[0] = (uint8_t *)&full_vidram[0x0000];
+        bwtd[1] = (uint8_t *)&full_vidram[0x2000];
+    }
+    else
+    {
+        bwtd[0] = (uint8_t *)&full_vidram[0x1000];
+        bwtd[1] = (uint8_t *)&full_vidram[0x3000];
+    }
+
+    if (value & (1 << 3))
+    {
+        btm[0] = (uint8_t *)&full_vidram[0x1C00];
+        btm[1] = (uint8_t *)&full_vidram[0x3C00];
+    }
+    else
+    {
+        btm[0] = (uint8_t *)&full_vidram[0x1800];
+        btm[1] = (uint8_t *)&full_vidram[0x3800];
+    }
 }
 
 static void p1(uint8_t value)
@@ -151,8 +173,8 @@ static void ocps(uint8_t value)
     int pval = opalette[(value >> 1) & 0x1F];
     int high = value & 1;
 
-    io_regs->bcps = value & 0xBF;
-    io_regs->bcpd = high ? (pval >> 8) : (pval & 0xFF);
+    io_regs->ocps = value & 0xBF;
+    io_regs->ocpd = high ? (pval >> 8) : (pval & 0xFF);
 }
 
 /**
@@ -357,16 +379,16 @@ static void (*const io_handlers[256])(uint8_t value) =
     (void (*)(uint8_t))&nop, // wave_pat
     &lcdc, // lcdc
     &stat, // stat
-    (void (*)(uint8_t))&store_and_redraw, // scy
-    (void (*)(uint8_t))&store_and_redraw, // scx
+    (void (*)(uint8_t))&nop, // scy
+    (void (*)(uint8_t))&nop, // scx
     NULL, // ly
     NULL, // lyc
     &dma, // dma
-    (void (*)(uint8_t))&store_and_redraw, // bgp
-    (void (*)(uint8_t))&store_and_redraw, // obp0
-    (void (*)(uint8_t))&store_and_redraw, // obp1
-    (void (*)(uint8_t))&store_and_redraw, // wy
-    (void (*)(uint8_t))&store_and_redraw, // wx
+    (void (*)(uint8_t))&nop, // bgp
+    (void (*)(uint8_t))&nop, // obp0
+    (void (*)(uint8_t))&nop, // obp1
+    (void (*)(uint8_t))&nop, // wy
+    (void (*)(uint8_t))&nop, // wx
     NULL, // rsvd6
     &key1, // key1
     (void (*)(uint8_t))&nop, // rsvd6

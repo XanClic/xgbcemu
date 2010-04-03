@@ -3474,6 +3474,12 @@ void run(void)
     io_regs->wx = 0x00;
     io_regs->int_enable = 0x00;
 
+    btm[0] = (uint8_t *)&full_vidram[0x1800];
+    btm[1] = (uint8_t *)&full_vidram[0x3800];
+    bwtd[0] = (uint8_t *)&full_vidram[0x0000];
+    bwtd[1] = (uint8_t *)&full_vidram[0x2000];
+    wtm = (uint8_t *)&vidram[0x1800];
+
     for(int i = 0; i < 32; i++)
     {
         bpalette[i] = 0x011F;

@@ -15,5 +15,6 @@ uint8_t *ext_ram_ptr = NULL, *rom_bank_ptr = NULL, *base_rom_ptr = NULL;
 uint8_t *int_ram = NULL, *oam_io = NULL, *vidram = NULL, *int_wram = NULL, *full_int_wram = NULL, *full_vidram = NULL;
 
 uint16_t bpalette[32], opalette[32];
+uint8_t *btm[2] = { NULL }, *bwtd[2] = { NULL }, *wtm = NULL;
 
 int hdma_on = 0;

@@ -42,15 +42,15 @@ void update_timer(int cycles_gone)
         {
             vsync_collect -= 114;
 
+            if (io_regs->ly < 144)
+                draw_line(io_regs->ly);
+
             hblank_start = 1;
             if (hdma_on)
                 hdma_copy_16b();
 
             if (++io_regs->ly > 153)
-            {
                 io_regs->ly = 0;
-                redraw();
-            }
             if (io_regs->ly == 144)
             {
                 io_regs->stat &= ~3;
