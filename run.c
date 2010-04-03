@@ -6,68 +6,37 @@
 
 // #define DUMP
 
+// #define DUMP_REGS
+
+// #define HALT_ON_RST
+
+// #define TRUE_TIMING
+
 #define X86_ZF (1 << 6)
 #define X86_CF (1 << 0)
 #define X86_AF (1 << 4)
 
-#define nn *((uint16_t *)&memory[ip])
+#define nn mem_readw(ip)
 
-static void (*handle0xCB[256])(void) = { NULL };
+#ifdef TRUE_TIMING
+static uint64_t new_tsc, last_tsc;
+static uint32_t diff;
+#endif
+
+extern void (*const handle0xCB[64])(void);
+extern const int cycles[256];
+extern const int cycles0xCB[256];
 
 static void call(void);
 static void jp(void);
 static void jr(void);
 static void ret(void);
 
-static void mem_writeb(uintptr_t addr, uint8_t value)
+static inline uint64_t rdtsc(void)
 {
-    uint8_t *caddr = (uint8_t *)&memory[addr];
-
-    #ifdef DUMP
-    printf("0x%02X -> 0x%04X\n", value, addr);
-    #endif
-
-    if ((addr >= 0xC000) && (addr < 0xDE00))
-    {
-        caddr[0x0000] = value;
-        caddr[0x2000] = value;
-    }
-    else if ((addr >= 0xE000) && (addr < 0xFE00))
-    {
-        caddr[ 0x0000] = value;
-        caddr[-0x2000] = value;
-    }
-    else if (((addr >= 0xFF00) && (addr < 0xFF4C)) || (addr == 0xFFFF))
-        io_outb((uint8_t)(addr - 0xFF00), value);
-    else
-        *caddr = value;
-}
-
-static void mem_writew(uintptr_t addr, uint16_t value)
-{
-    uint16_t *caddr = (uint16_t *)&memory[addr];
-
-    #ifdef DUMP
-    printf("0x%04X -> 0x%04X\n", value, addr);
-    #endif
-
-    if ((addr >= 0xC000) && (addr < 0xDE00))
-    {
-        caddr[0x0000] = value;
-        caddr[0x2000] = value;
-    }
-    else if ((addr >= 0xE000) && (addr < 0xFE00))
-    {
-        caddr[ 0x0000] = value;
-        caddr[-0x2000] = value;
-    }
-    else if (((addr >= 0xFF00) && (addr < 0xFF4C)) || (addr == 0xFFFF))
-    {
-        printf("I/O write: 0x%04X -> 0x%04X (16 bit not supported!)\n", (unsigned)value, addr);
-        exit(0);
-    }
-    else
-        *caddr = value;
+    uint32_t lo, hi;
+    __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
+    return (uint64_t)lo | ((uint64_t)hi << 32);
 }
 
 static void nop(void)
@@ -104,43 +73,36 @@ static void inc_bc(void)
 
 static void inc_b(void)
 {
-    uint32_t eflags;
-
     #ifdef DUMP
     printf("INC B: B == 0x%02X\n", (unsigned)b);
     #endif
-    __asm__ __volatile__ ("inc al; pushfd; pop edx" : "=a"(b), "=d"(eflags) : "a"(b));
 
     f &= FLAG_CRY;
-    if (eflags & X86_ZF)
+    if (!++b)
         f |= FLAG_ZERO;
-    if (eflags & X86_AF)
+    if (!(b & 0xF))
         f |= FLAG_HCRY;
 }
 
 static void dec_b(void)
 {
-    uint32_t eflags;
-
     #ifdef DUMP
     printf("DEC B: B == 0x%02X\n", (unsigned)b);
     #endif
-    __asm__ __volatile__ ("dec al; pushfd; pop edx" : "=a"(b), "=d"(eflags) : "a"(b));
 
-    f &= FLAG_CRY;
-    f |= FLAG_SUB;
-    if (eflags & X86_ZF)
-        f |= FLAG_ZERO;
-    if (eflags & X86_AF)
+    f = (f & FLAG_CRY) | FLAG_SUB;
+    if (!(b & 0xF))
         f |= FLAG_HCRY;
+    if (!--b)
+        f |= FLAG_ZERO;
 }
 
 static void ld_b_n(void)
 {
     #ifdef DUMP
-    printf("LD B, 0x%02X: B == 0x%02X\n", (unsigned)memory[ip], (unsigned)b);
+    printf("LD B, 0x%02X: B == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)b);
     #endif
-    b = memory[ip++];
+    b = mem_readb(ip++);
 }
 
 static void rlca(void)
@@ -171,12 +133,10 @@ static void add_hl_bc(void)
     printf("ADD HL, BC: HL == 0x%04X; BC == 0x%04X\n", (unsigned)hl, (unsigned)bc);
     #endif
 
-    f = 0;
+    f &= FLAG_ZERO;
     if (result & ~0xFFFF)
         f |= FLAG_CRY;
     result &= 0xFFFF;
-    if (!result)
-        f |= FLAG_ZERO;
     if ((hl & 0xFFF) + (bc & 0xFFF) > 0xFFF)
         f |= FLAG_HCRY;
 
@@ -188,7 +148,7 @@ static void ld_a__bc(void)
     #ifdef DUMP
     printf("LD A, (BC): A == 0x%02X; BC == 0x%04X\n", (unsigned)a, (unsigned)bc);
     #endif
-    a = memory[bc];
+    a = mem_readb(bc);
 }
 
 static void dec_bc(void)
@@ -201,43 +161,36 @@ static void dec_bc(void)
 
 static void inc_c(void)
 {
-    uint32_t eflags;
-
     #ifdef DUMP
     printf("INC C: C == 0x%02X\n", (unsigned)c);
     #endif
-    __asm__ __volatile__ ("inc al; pushfd; pop edx" : "=a"(c), "=d"(eflags) : "a"(c));
 
     f &= FLAG_CRY;
-    if (eflags & X86_ZF)
+    if (!++c)
         f |= FLAG_ZERO;
-    if (eflags & X86_AF)
+    if (!(c & 0xF))
         f |= FLAG_HCRY;
 }
 
 static void dec_c(void)
 {
-    uint32_t eflags;
-
     #ifdef DUMP
     printf("DEC C: C == 0x%02X\n", (unsigned)c);
     #endif
-    __asm__ __volatile__ ("dec al; pushfd; pop edx" : "=a"(c), "=d"(eflags) : "a"(c));
 
-    f &= FLAG_CRY;
-    f |= FLAG_SUB;
-    if (eflags & X86_ZF)
-        f |= FLAG_ZERO;
-    if (eflags & X86_AF)
+    f = (f & FLAG_CRY) | FLAG_SUB;
+    if (!(c & 0xF))
         f |= FLAG_HCRY;
+    if (!--c)
+        f |= FLAG_ZERO;
 }
 
 static void ld_c_n(void)
 {
     #ifdef DUMP
-    printf("LD C, 0x%02X: C == 0x%02X\n", (unsigned)memory[ip], (unsigned)c);
+    printf("LD C, 0x%02X: C == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)c);
     #endif
-    c = memory[ip++];
+    c = mem_readb(ip++);
 }
 
 static void rrca(void)
@@ -253,13 +206,19 @@ static void rrca(void)
 
 static void prefix0x10(void)
 {
-    switch (memory[ip])
+    switch (mem_readb(ip))
     {
         case 0x00:
             printf("STOP\n");
-            exit(0);
+            if (!(io_regs->key1 & 1))
+                exit(0);
+            else
+            {
+                double_speed ^= 1;
+                printf("Using %s speed\n", double_speed ? "double" : "single");
+            }
         default:
-            printf("Unknown opcode 0x%02X, prefixed by 0x10.\n", (unsigned)memory[ip]);
+            printf("Unknown opcode 0x%02X, prefixed by 0x10.\n", (unsigned)mem_readb(ip));
             exit(1);
     }
 }
@@ -291,43 +250,36 @@ static void inc_de(void)
 
 static void inc_d(void)
 {
-    uint32_t eflags;
-
     #ifdef DUMP
     printf("INC D: D == 0x%02X\n", (unsigned)d);
     #endif
-    __asm__ __volatile__ ("inc al; pushfd; pop edx" : "=a"(d), "=d"(eflags) : "a"(d));
 
     f &= FLAG_CRY;
-    if (eflags & X86_ZF)
+    if (!++d)
         f |= FLAG_ZERO;
-    if (eflags & X86_AF)
+    if (!(d & 0xF))
         f |= FLAG_HCRY;
 }
 
 static void dec_d(void)
 {
-    uint32_t eflags;
-
     #ifdef DUMP
     printf("DEC D: D == 0x%02X\n", (unsigned)d);
     #endif
-    __asm__ __volatile__ ("dec al; pushfd; pop edx" : "=a"(d), "=d"(eflags) : "a"(d));
 
-    f &= FLAG_CRY;
-    f |= FLAG_SUB;
-    if (eflags & X86_ZF)
-        f |= FLAG_ZERO;
-    if (eflags & X86_AF)
+    f = (f & FLAG_CRY) | FLAG_SUB;
+    if (!(d & 0xF))
         f |= FLAG_HCRY;
+    if (!--d)
+        f |= FLAG_ZERO;
 }
 
 static void ld_d_n(void)
 {
     #ifdef DUMP
-    printf("LD D, 0x%02X: D == 0x%02X\n", (unsigned)memory[ip], (unsigned)d);
+    printf("LD D, 0x%02X: D == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)d);
     #endif
-    d = memory[ip++];
+    d = mem_readb(ip++);
 }
 
 static void rla(void)
@@ -347,10 +299,10 @@ static void rla(void)
 static void jr(void)
 {
     #ifdef DUMP
-    int off = ((signed char *)memory)[ip];
+    int off = (int)(signed char)mem_readb(ip);
     printf("JR %i: 0x%04X → 0x%04X\n", (int)off, (unsigned)(ip - 1), (unsigned)(ip + off + 1));
     #endif
-    ip += ((signed char *)memory)[ip] + 1;
+    ip += (int)(signed char)mem_readb(ip) + 1;
 }
 
 static void add_hl_de(void)
@@ -361,24 +313,22 @@ static void add_hl_de(void)
     printf("ADD HL, DE: HL == 0x%04X; DE == 0x%04X\n", (unsigned)hl, (unsigned)de);
     #endif
 
-    f = 0;
+    f &= FLAG_ZERO;
     if (result & ~0xFFFF)
         f |= FLAG_CRY;
     result &= 0xFFFF;
-    if (!result)
-        f |= FLAG_ZERO;
     if ((hl & 0xFFF) + (bc & 0xFFF) > 0xFFF)
         f |= FLAG_HCRY;
 
     hl = result;
 }
 
-static  void ld_a__de(void)
+static void ld_a__de(void)
 {
     #ifdef DUMP
     printf("LD A, (DE): A == 0x%02X; DE == 0x%04X\n", (unsigned)a, (unsigned)de);
     #endif
-    a = memory[de];
+    a = mem_readb(de);
 }
 
 static void dec_de(void)
@@ -391,43 +341,36 @@ static void dec_de(void)
 
 static void inc_e(void)
 {
-    uint32_t eflags;
-
     #ifdef DUMP
     printf("INC E: E == 0x%02X\n", (unsigned)e);
     #endif
-    __asm__ __volatile__ ("inc al; pushfd; pop edx" : "=a"(e), "=d"(eflags) : "a"(e));
 
     f &= FLAG_CRY;
-    if (eflags & X86_ZF)
+    if (!++e)
         f |= FLAG_ZERO;
-    if (eflags & X86_AF)
+    if (!(e & 0xF))
         f |= FLAG_HCRY;
 }
 
 static void dec_e(void)
 {
-    uint32_t eflags;
-
     #ifdef DUMP
     printf("DEC E: E == 0x%02X\n", (unsigned)e);
     #endif
-    __asm__ __volatile__ ("dec al; pushfd; pop edx" : "=a"(e), "=d"(eflags) : "a"(e));
 
-    f &= FLAG_CRY;
-    f |= FLAG_SUB;
-    if (eflags & X86_ZF)
-        f |= FLAG_ZERO;
-    if (eflags & X86_AF)
+    f = (f & FLAG_CRY) | FLAG_SUB;
+    if (!(e & 0xF))
         f |= FLAG_HCRY;
+    if (!--e)
+        f |= FLAG_ZERO;
 }
 
 static void ld_e_n(void)
 {
     #ifdef DUMP
-    printf("LD E, 0x%02X: E == 0x%02X\n", (unsigned)memory[ip], (unsigned)e);
+    printf("LD E, 0x%02X: E == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)e);
     #endif
-    e = memory[ip++];
+    e = mem_readb(ip++);
 }
 
 static void rra(void)
@@ -489,43 +432,36 @@ static void inc_hl(void)
 
 static void inc_h(void)
 {
-    uint32_t eflags;
-
     #ifdef DUMP
     printf("INC H: H == 0x%02X\n", (unsigned)h);
     #endif
-    __asm__ __volatile__ ("inc al; pushfd; pop edx" : "=a"(h), "=d"(eflags) : "a"(h));
 
     f &= FLAG_CRY;
-    if (eflags & X86_ZF)
+    if (!++h)
         f |= FLAG_ZERO;
-    if (eflags & X86_AF)
+    if (!(h & 0xF))
         f |= FLAG_HCRY;
 }
 
 static void dec_h(void)
 {
-    uint32_t eflags;
-
     #ifdef DUMP
     printf("DEC H: H == 0x%02X\n", (unsigned)h);
     #endif
-    __asm__ __volatile__ ("dec al; pushfd; pop edx" : "=a"(h), "=d"(eflags) : "a"(h));
 
-    f &= FLAG_CRY;
-    f |= FLAG_SUB;
-    if (eflags & X86_ZF)
-        f |= FLAG_ZERO;
-    if (eflags & X86_AF)
+    f = (f & FLAG_CRY) | FLAG_SUB;
+    if (!(h & 0xF))
         f |= FLAG_HCRY;
+    if (!--h)
+        f |= FLAG_ZERO;
 }
 
 static void ld_h_n(void)
 {
     #ifdef DUMP
-    printf("LD H, 0x%02X: H == 0x%02X\n", memory[ip], h);
+    printf("LD H, 0x%02X: H == 0x%02X\n", mem_readb(ip), h);
     #endif
-    h = memory[ip++];
+    h = mem_readb(ip++);
 }
 
 static void daa(void)
@@ -593,13 +529,11 @@ static void add_hl_hl(void)
     printf("ADD HL, HL: HL == 0x%02X\n", (unsigned)hl);
     #endif
 
-    f = 0;
+    f &= FLAG_ZERO;
     if (hl & 0x8000)
         f |= FLAG_CRY;
     if (hl & 0x0800)
         f |= FLAG_HCRY;
-    if (!hl)
-        f |= FLAG_ZERO;
 
     hl <<= 1;
 }
@@ -609,7 +543,7 @@ static void ldi_a__hl(void)
     #ifdef DUMP
     printf("LDI A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
     #endif
-    a = memory[hl++];
+    a = mem_readb(hl++);
 }
 
 static void dec_hl(void)
@@ -622,43 +556,36 @@ static void dec_hl(void)
 
 static void inc_l(void)
 {
-    uint32_t eflags;
-
     #ifdef DUMP
     printf("INC L: L == 0x%02X\n", (unsigned)l);
     #endif
-    __asm__ __volatile__ ("inc al; pushfd; pop edx" : "=a"(l), "=d"(eflags) : "a"(l));
 
     f &= FLAG_CRY;
-    if (eflags & X86_ZF)
+    if (!++l)
         f |= FLAG_ZERO;
-    if (eflags & X86_AF)
+    if (!(l & 0xF))
         f |= FLAG_HCRY;
 }
 
 static void dec_l(void)
 {
-    uint32_t eflags;
-
     #ifdef DUMP
     printf("DEC L: L == 0x%02X\n", (unsigned)l);
     #endif
-    __asm__ __volatile__ ("dec al; pushfd; pop edx" : "=a"(l), "=d"(eflags) : "a"(l));
 
-    f &= FLAG_CRY;
-    f |= FLAG_SUB;
-    if (eflags & X86_ZF)
-        f |= FLAG_ZERO;
-    if (eflags & X86_AF)
+    f = (f & FLAG_CRY) | FLAG_SUB;
+    if (!(l & 0xF))
         f |= FLAG_HCRY;
+    if (!--l)
+        f |= FLAG_ZERO;
 }
 
 static void ld_l_n(void)
 {
     #ifdef DUMP
-    printf("LD L, 0x%02X: L == 0x%02X\n", (unsigned)memory[ip], (unsigned)l);
+    printf("LD L, 0x%02X: L == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)l);
     #endif
-    l = memory[ip++];
+    l = mem_readb(ip++);
 }
 
 static void cpl_a(void)
@@ -716,42 +643,44 @@ static void inc_sp(void)
 
 static void inc__hl(void)
 {
-    uint32_t eflags;
+    uint8_t val;
 
     #ifdef DUMP
     printf("INC (HL): HL == 0x%04X\n", (unsigned)hl);
     #endif
-    __asm__ __volatile__ ("inc byte ptr [eax]; pushfd; pop eax" : "=a"(eflags) : "a"(&memory[hl]));
 
+    val = mem_readb(hl);
     f &= FLAG_CRY;
-    if (eflags & X86_ZF)
+    if (!++val)
         f |= FLAG_ZERO;
-    if (eflags & X86_AF)
+    if (!(val & 0xF))
         f |= FLAG_HCRY;
+    mem_writeb(hl, val);
 }
 
 static void dec__hl(void)
 {
-    uint32_t eflags;
+    uint8_t val;
 
     #ifdef DUMP
     printf("DEC (HL): HL == 0x%04X\n", (unsigned)hl);
     #endif
-    __asm__ __volatile__ ("dec byte ptr [eax]; pushfd; pop eax" : "=a"(eflags) : "a"(&memory[hl]));
 
-    f &= FLAG_CRY;
-    if (eflags & X86_ZF)
-        f |= FLAG_ZERO;
-    if (eflags & X86_AF)
+    val = mem_readb(hl);
+    f = (f & FLAG_CRY) | FLAG_SUB;
+    if (!(val & 0xF))
         f |= FLAG_HCRY;
+    if (!--val)
+        f |= FLAG_ZERO;
+    mem_writeb(hl, val);
 }
 
 static void ld__hl_n(void)
 {
     #ifdef DUMP
-    printf("LD (HL), 0x%02X: HL == 0x%04X\n", (unsigned)memory[ip], (unsigned)hl);
+    printf("LD (HL), 0x%02X: HL == 0x%04X\n", (unsigned)mem_readb(ip), (unsigned)hl);
     #endif
-    mem_writeb(hl, memory[ip++]);
+    mem_writeb(hl, mem_readb(ip++));
 }
 
 static void scf(void)
@@ -788,12 +717,10 @@ static void add_hl_sp(void)
     printf("ADD HL, SP: HL == 0x%04X; SP == 0x%04X\n", (unsigned)hl, (unsigned)sp);
     #endif
 
-    f = 0;
+    f &= FLAG_ZERO;
     if (result & ~0xFFFF)
         f |= FLAG_CRY;
     result &= 0xFFFF;
-    if (!result)
-        f |= FLAG_ZERO;
     if ((hl & 0xFFF) + (bc & 0xFFF) > 0xFFF)
         f |= FLAG_HCRY;
 
@@ -805,7 +732,7 @@ static void ldd_a__hl(void)
     #ifdef DUMP
     printf("LDD A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
     #endif
-    a = memory[hl--];
+    a = mem_readb(hl--);
 }
 
 static void dec_sp(void)
@@ -818,43 +745,36 @@ static void dec_sp(void)
 
 static void inc_a(void)
 {
-    uint32_t eflags;
-
     #ifdef DUMP
     printf("INC A: A == 0x%02X\n", (unsigned)a);
     #endif
-    __asm__ __volatile__ ("inc al; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a));
 
     f &= FLAG_CRY;
-    if (eflags & X86_ZF)
+    if (!++a)
         f |= FLAG_ZERO;
-    if (eflags & X86_AF)
+    if (!(a & 0xF))
         f |= FLAG_HCRY;
 }
 
 static void dec_a(void)
 {
-    uint32_t eflags;
-
     #ifdef DUMP
     printf("DEC A: A == 0x%02X\n", (unsigned)a);
     #endif
-    __asm__ __volatile__ ("dec al; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a));
 
-    f &= FLAG_CRY;
-    f |= FLAG_SUB;
-    if (eflags & X86_ZF)
-        f |= FLAG_ZERO;
-    if (eflags & X86_AF)
+    f = (f & FLAG_CRY) | FLAG_SUB;
+    if (!(a & 0xF))
         f |= FLAG_HCRY;
+    if (!--a)
+        f |= FLAG_ZERO;
 }
 
 static void ld_a_s(void)
 {
     #ifdef DUMP
-    printf("LD A, 0x%02X: A == 0x%02X\n", (unsigned)memory[ip], (unsigned)a);
+    printf("LD A, 0x%02X: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
     #endif
-    a = memory[ip++];
+    a = mem_readb(ip++);
 }
 
 static void ccf(void)
@@ -917,7 +837,7 @@ static void ld_b__hl(void)
     #ifdef DUMP
     printf("LD B, (HL): B == 0x%02X; HL == 0x%04X\n", (unsigned)b, (unsigned)hl);
     #endif
-    b = memory[hl];
+    b = mem_readb(hl);
 }
 
 static void ld_b_a(void)
@@ -980,7 +900,7 @@ static void ld_c__hl(void)
     #ifdef DUMP
     printf("LD C, (HL): C == 0x%02X; HL == 0x%04X\n", (unsigned)c, (unsigned)hl);
     #endif
-    c = memory[hl];
+    c = mem_readb(hl);
 }
 
 static void ld_c_a(void)
@@ -1043,7 +963,7 @@ static void ld_d__hl(void)
     #ifdef DUMP
     printf("LD D, (HL): D == 0x%02X; HL == 0x%04X\n", (unsigned)d, (unsigned)hl);
     #endif
-    d = memory[hl];
+    d = mem_readb(hl);
 }
 
 static void ld_d_a(void)
@@ -1106,7 +1026,7 @@ static void ld_e__hl(void)
     #ifdef DUMP
     printf("LD E, (HL): E == 0x%02X; HL == 0x%04X\n", (unsigned)e, (unsigned)hl);
     #endif
-    e = memory[hl];
+    e = mem_readb(hl);
 }
 
 static void ld_e_a(void)
@@ -1169,7 +1089,7 @@ static void ld_h__hl(void)
     #ifdef DUMP
     printf("LD H, (HL): H == 0x%02X; HL == 0x%04X\n", (unsigned)h, (unsigned)hl);
     #endif
-    h = memory[hl];
+    h = mem_readb(hl);
 }
 
 static void ld_h_a(void)
@@ -1232,7 +1152,7 @@ static void ld_l__hl(void)
     #ifdef DUMP
     printf("LD L, (HL): L == 0x%02X; HL == 0x%04X\n", (unsigned)l, (unsigned)hl);
     #endif
-    l = memory[hl];
+    l = mem_readb(hl);
 }
 
 static void ld_l_a(void)
@@ -1293,8 +1213,22 @@ static void ld__hl_l(void)
 
 static void halt(void)
 {
+    #ifdef DUMP
+    printf("HALT\n");
+    #endif
     interrupt_issued = 0;
-    while (!interrupt_issued);
+    while (!interrupt_issued)
+    {
+        #ifdef TRUE_TIMING
+        new_tsc = rdtsc();
+        diff = new_tsc - last_tsc;
+        last_tsc = new_tsc;
+        update_timer(1000000LL * (uint64_t)diff / (uint64_t)rdtsc_resolution);
+        #else
+        update_timer(1);
+        #endif
+        generate_interrupts();
+    }
 }
 
 static void ld__hl_a(void)
@@ -1358,7 +1292,7 @@ static void ld_a__hl(void)
     #ifdef DUMP
     printf("LD A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
     #endif
-    a = memory[hl];
+    a = mem_readb(hl);
 }
 
 static void ld_a_a(void)
@@ -1483,7 +1417,7 @@ static void add_a__hl(void)
     #ifdef DUMP
     printf("ADD A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
     #endif
-    __asm__ __volatile__ ("add al,[edx]; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(&memory[hl]));
+    __asm__ __volatile__ ("add al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(mem_readb(hl)));
 
     f = 0;
     if (eflags & X86_CF)
@@ -1646,9 +1580,9 @@ static void adc_a__hl(void)
     printf("ADC A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
     #endif
     if (f & X86_CF)
-        __asm__ __volatile__ ("stc; adc al,[edx]; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(&memory[hl]));
+        __asm__ __volatile__ ("stc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(mem_readb(hl)));
     else
-        __asm__ __volatile__ ("clc; adc al,[edx]; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(&memory[hl]));
+        __asm__ __volatile__ ("clc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(mem_readb(hl)));
 
     f = 0;
     if (eflags & X86_CF)
@@ -1795,7 +1729,7 @@ static void sub_a__hl(void)
     #ifdef DUMP
     printf("SUB A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
     #endif
-    __asm__ __volatile__ ("sub al,[edx]; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(&memory[hl]));
+    __asm__ __volatile__ ("sub al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(mem_readb(hl)));
 
     f = FLAG_SUB;
     if (eflags & X86_ZF)
@@ -1950,9 +1884,9 @@ static void sbc_a__hl(void)
     printf("SBC A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
     #endif
     if (f & FLAG_CRY)
-        __asm__ __volatile__ ("stc; sbb al,[edx]; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(&memory[hl]));
+        __asm__ __volatile__ ("stc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(mem_readb(hl)));
     else
-        __asm__ __volatile__ ("clc; sbb al,[edx]; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(&memory[hl]));
+        __asm__ __volatile__ ("clc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(mem_readb(hl)));
 
     f = FLAG_SUB;
     if (eflags & X86_ZF)
@@ -2065,7 +1999,7 @@ static void and_a__hl(void)
     printf("AND A, (HL): A == 0x%02X; HL == 0x%42X\n", (unsigned)a, (unsigned)hl);
     #endif
 
-    a &= memory[hl];
+    a &= mem_readb(hl);
     if (a)
         f = FLAG_HCRY;
     else
@@ -2150,7 +2084,7 @@ static void xor_a__hl(void)
     printf("XOR A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
     #endif
 
-    a ^= memory[hl];
+    a ^= mem_readb(hl);
     f = a ? 0 : FLAG_ZERO;
 }
 
@@ -2230,7 +2164,7 @@ static void or_a__hl(void)
     printf("OR A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
     #endif
 
-    a |= memory[hl];
+    a |= mem_readb(hl);
     f = a ? 0 : FLAG_ZERO;
 }
 
@@ -2360,7 +2294,7 @@ static void cp_a__hl(void)
     #endif
 
     f = FLAG_SUB;
-    __asm__ __volatile__ ("cmp al,[edx]; pushfd; pop eax" : "=a"(eflags) : "a"(a), "d"(&memory[hl]));
+    __asm__ __volatile__ ("cmp al,dl; pushfd; pop eax" : "=a"(eflags) : "a"(a), "d"(mem_readb(hl)));
     if (eflags & X86_ZF)
         f |= FLAG_ZERO;
     if (eflags & X86_CF)
@@ -2460,9 +2394,9 @@ static void add_a_s(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("ADD A, 0x%02X: A == 0x%02X\n", (unsigned)memory[ip], (unsigned)a);
+    printf("ADD A, 0x%02X: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
     #endif
-    __asm__ __volatile__ ("add al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(memory[ip++]));
+    __asm__ __volatile__ ("add al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(mem_readb(ip++)));
 
     f = 0;
     if (eflags & X86_CF)
@@ -2477,6 +2411,10 @@ static void rst0x00(void)
 {
     #ifdef DUMP
     printf("RST $00: IP == 0x%04X\n", (unsigned)ip - 1);
+    #endif
+    #ifdef HALT_ON_RST
+    printf("RST – halting\n");
+    exit(1);
     #endif
     push(ip);
     ip = 0x0000;
@@ -2530,14 +2468,14 @@ static void jpz(void)
 
 static void prefix0xCB(void)
 {
-    int bval = 1 << ((memory[ip] & 0x38) >> 3);
-    int reg = memory[ip] & 0x07;
+    int bval = 1 << ((mem_readb(ip) & 0x38) >> 3);
+    int reg = mem_readb(ip) & 0x07;
 
-    switch ((memory[ip++] & 0xC0) >> 6)
+    switch ((mem_readb(ip++) & 0xC0) >> 6)
     {
         case 0x01: // BIT
             #ifdef DUMP
-            printf("BIT %i, ", (memory[ip - 1] & 0x38) >> 3);
+            printf("BIT %i, ", (mem_readb(ip - 1) & 0x38) >> 3);
             #endif
             f &= FLAG_CRY;
             switch (reg)
@@ -2582,7 +2520,7 @@ static void prefix0xCB(void)
                     #ifdef DUMP
                     printf("(HL): HL == 0x%04X\n", (unsigned)hl);
                     #endif
-                    f |= (memory[hl] & bval) ? 0 : FLAG_ZERO;
+                    f |= (mem_readb(hl) & bval) ? 0 : FLAG_ZERO;
                     break;
                 case 7:
                     #ifdef DUMP
@@ -2594,7 +2532,7 @@ static void prefix0xCB(void)
             break;
         case 0x02: // RES
             #ifdef DUMP
-            printf("RES %i, ", (memory[ip - 1] & 0x38) >> 3);
+            printf("RES %i, ", (mem_readb(ip - 1) & 0x38) >> 3);
             #endif
             switch (reg)
             {
@@ -2638,7 +2576,7 @@ static void prefix0xCB(void)
                     #ifdef DUMP
                     printf("(HL): HL == 0x%04X\n", (unsigned)hl);
                     #endif
-                    memory[hl] &= ~bval;
+                    mem_writeb(hl, mem_readb(hl) & ~bval);
                     break;
                 case 7:
                     #ifdef DUMP
@@ -2650,7 +2588,7 @@ static void prefix0xCB(void)
             break;
         case 0x03: // SET
             #ifdef DUMP
-            printf("SET %i, ", (memory[ip - 1] & 0x38) >> 3);
+            printf("SET %i, ", (mem_readb(ip - 1) & 0x38) >> 3);
             #endif
             switch (reg)
             {
@@ -2694,7 +2632,7 @@ static void prefix0xCB(void)
                     #ifdef DUMP
                     printf("(HL): HL == 0x%04X\n", (unsigned)hl);
                     #endif
-                    memory[hl] |= bval;
+                    mem_writeb(hl, mem_readb(hl) | bval);
                     break;
                 case 7:
                     #ifdef DUMP
@@ -2705,13 +2643,13 @@ static void prefix0xCB(void)
             }
             break;
         default:
-            if (handle0xCB[(int)memory[ip - 1]] == NULL)
+            if (handle0xCB[(int)mem_readb(ip - 1)] == NULL)
             {
-                printf("Unknown opcode 0x%02X, prefixed by 0xCB\n", (unsigned)memory[ip - 1]);
+                printf("Unknown opcode 0x%02X, prefixed by 0xCB\n", (unsigned)mem_readb(ip - 1));
                 exit(1);
             }
 
-            handle0xCB[(int)memory[ip - 1]]();
+            handle0xCB[(int)mem_readb(ip - 1)]();
     }
 }
 
@@ -2747,12 +2685,12 @@ static void adc_a_s(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("ADC A, 0x%02X: A == 0x%02X\n", (unsigned)memory[ip], (unsigned)a);
+    printf("ADC A, 0x%02X: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
     #endif
     if (f & FLAG_CRY)
-        __asm__ __volatile__ ("stc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(memory[ip++]));
+        __asm__ __volatile__ ("stc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(mem_readb(ip++)));
     else
-        __asm__ __volatile__ ("clc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(memory[ip++]));
+        __asm__ __volatile__ ("clc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(mem_readb(ip++)));
 
     f = 0;
     if (eflags & X86_CF)
@@ -2767,6 +2705,10 @@ static void rst0x08(void)
 {
     #ifdef DUMP
     printf("RST $08: IP == 0x%04X\n", (unsigned)ip - 1);
+    #endif
+    #ifdef HALT_ON_RST
+    printf("RST – halting\n");
+    exit(1);
     #endif
     push(ip);
     ip = 0x0008;
@@ -2846,9 +2788,9 @@ static void sub_a_s(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("SUB A, 0x%02X: A == 0x%02X\n", (unsigned)memory[ip], (unsigned)a);
+    printf("SUB A, 0x%02X: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
     #endif
-    __asm__ __volatile__ ("sub al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(memory[ip++]));
+    __asm__ __volatile__ ("sub al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(mem_readb(ip++)));
 
     f = FLAG_SUB;
     if (eflags & X86_ZF)
@@ -2863,6 +2805,10 @@ static void ret0x10(void)
 {
     #ifdef DUMP
     printf("RST $10: IP == 0x%04X\n", (unsigned)ip - 1);
+    #endif
+    #ifdef HALT_ON_RST
+    printf("RST – halting\n");
+    exit(1);
     #endif
     push(ip);
     ip = 0x0010;
@@ -2937,12 +2883,12 @@ static void sbc_a_s(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("SBC A, 0x%02X: A == 0x%02X\n", (unsigned)a, (unsigned)memory[ip]);
+    printf("SBC A, 0x%02X: A == 0x%02X\n", (unsigned)a, (unsigned)mem_readb(ip));
     #endif
     if (f & FLAG_CRY)
-        __asm__ __volatile__ ("stc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(memory[ip++]));
+        __asm__ __volatile__ ("stc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(mem_readb(ip++)));
     else
-        __asm__ __volatile__ ("clc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(memory[ip++]));
+        __asm__ __volatile__ ("clc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(mem_readb(ip++)));
 
     f = FLAG_SUB;
     if (eflags & X86_ZF)
@@ -2958,6 +2904,10 @@ static void rst0x18(void)
     #ifdef DUMP
     printf("RST $18: IP == 0x%04X\n", (unsigned)ip - 1);
     #endif
+    #ifdef HALT_ON_RST
+    printf("RST – halting\n");
+    exit(1);
+    #endif
     push(ip);
     ip = 0x0018;
 }
@@ -2965,9 +2915,9 @@ static void rst0x18(void)
 static void ld__ffn_a(void)
 {
     #ifdef DUMP
-    printf("LD ($FF00 + 0x%02X), A: A == 0x%02X\n", (unsigned)memory[ip], (unsigned)a);
+    printf("LD ($FF00 + 0x%02X), A: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
     #endif
-    mem_writeb(0xFF00 + memory[ip++], a);
+    mem_writeb(0xFF00 + mem_readb(ip++), a);
 }
 
 static void pop_hl(void)
@@ -2997,10 +2947,10 @@ static void push_hl(void)
 static void and_a_s(void)
 {
     #ifdef DUMP
-    printf("AND A, 0x%02X: A == 0x%02X\n", (unsigned)memory[ip], (unsigned)a);
+    printf("AND A, 0x%02X: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
     #endif
 
-    a &= memory[ip++];
+    a &= mem_readb(ip++);
     if (a)
         f = FLAG_HCRY;
     else
@@ -3012,16 +2962,31 @@ static void rst0x20(void)
     #ifdef DUMP
     printf("RST $20: IP == 0x%04X\n", (unsigned)ip - 1);
     #endif
+    #ifdef HALT_ON_RST
+    printf("RST – halting\n");
+    exit(1);
+    #endif
     push(ip);
     ip = 0x0020;
 }
 
 static void add_sp_s(void)
 {
+    int add = (int)(signed char)mem_readb(ip++);
+    int result = sp + add;
+
     #ifdef DUMP
-    printf("ADD SP, %i: SP == 0x%04X\n", (int)(signed char)memory[ip], sp);
+    printf("ADD SP, %i: SP == 0x%04X\n", add, sp);
     #endif
-    sp += (int)(signed char)memory[ip++];
+
+    f = 0;
+    if (result & ~0xFFFF)
+        f |= FLAG_CRY;
+    result &= 0xFFFF;
+    if ((sp & 0xFFF) + (add & 0xFFF) > 0xFFF)
+        f |= FLAG_HCRY;
+
+    sp = result;
 }
 
 static void jp__hl(void)
@@ -3044,10 +3009,10 @@ static void ld__nn_a(void)
 static void xor_a_s(void)
 {
     #ifdef DUMP
-    printf("XOR A, 0x%02X: A == 0x%02X\n", (unsigned)memory[ip], (unsigned)a);
+    printf("XOR A, 0x%02X: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
     #endif
 
-    a ^= memory[ip++];
+    a ^= mem_readb(ip++);
     f = a ? 0 : FLAG_ZERO;
 }
 
@@ -3056,6 +3021,10 @@ static void rst0x28(void)
     #ifdef DUMP
     printf("RST $28: IP == 0x%04X\n", (unsigned)ip - 1);
     #endif
+    #ifdef HALT_ON_RST
+    printf("RST – halting\n");
+    exit(1);
+    #endif
     push(ip);
     ip = 0x0028;
 }
@@ -3063,9 +3032,9 @@ static void rst0x28(void)
 static void ld_a__ffn(void)
 {
     #ifdef DUMP
-    printf("LD A, ($FF00 + 0x%02X): A == 0x%02X\n", (unsigned)memory[ip], (unsigned)a);
+    printf("LD A, ($FF00 + 0x%02X): A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
     #endif
-    a = memory[0xFF00 + (unsigned)memory[ip++]];
+    a = mem_readb(0xFF00 + (unsigned)mem_readb(ip++));
 }
 
 static void pop_af(void)
@@ -3081,7 +3050,7 @@ static void ld_a__ffc(void)
     #ifdef DUMP
     printf("LD A, ($FF00 + C): A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
     #endif
-    a = memory[0xFF00 + (unsigned)c];
+    a = mem_readb(0xFF00 + (unsigned)c);
 }
 
 static void di_(void)
@@ -3103,10 +3072,10 @@ static void push_af(void)
 static void or_a_s(void)
 {
     #ifdef DUMP
-    printf("OR A, 0x%02X: A == 0x%02X\n", (unsigned)memory[ip], (unsigned)a);
+    printf("OR A, 0x%02X: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
     #endif
 
-    a |= memory[ip++];
+    a |= mem_readb(ip++);
     f = a ? 0 : FLAG_ZERO;
 }
 
@@ -3114,6 +3083,10 @@ static void rst0x30(void)
 {
     #ifdef DUMP
     printf("RST $30: IP == 0x%04X\n", (unsigned)ip - 1);
+    #endif
+    #ifdef HALT_ON_RST
+    printf("RST – halting\n");
+    exit(1);
     #endif
     push(ip);
     ip = 0x0030;
@@ -3124,10 +3097,10 @@ static void ld_hl_spn(void)
     int result;
 
     #ifdef DUMP
-    printf("LD HL, SP + %i: HL == 0x%04X; SP == 0x%04X\n", (int)(signed char)memory[ip], (unsigned)hl, (unsigned)sp);
+    printf("LD HL, SP + %i: HL == 0x%04X; SP == 0x%04X\n", (int)(signed char)mem_readb(ip), (unsigned)hl, (unsigned)sp);
     #endif
 
-    result = sp + (int)(signed char)memory[ip++];
+    result = sp + (int)(signed char)mem_readb(ip++);
 
     f = 0;
     if (result & ~0xFFFF)
@@ -3152,7 +3125,7 @@ static void ld_a__nn(void)
     #ifdef DUMP
     printf("LD A, (0x%04X): A == 0x%02X\n", (unsigned)nn, (unsigned)a);
     #endif
-    a = memory[nn];
+    a = mem_readb(nn);
     ip += 2;
 }
 
@@ -3169,11 +3142,11 @@ static void cp_s(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("CP A, 0x%02X: A == 0x%02X\n", (unsigned)memory[ip], (unsigned)a);
+    printf("CP A, 0x%02X: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
     #endif
 
     f = FLAG_SUB;
-    __asm__ __volatile__ ("cmp al,dl; pushfd; pop eax" : "=a"(eflags) : "a"(a), "d"(memory[ip++]));
+    __asm__ __volatile__ ("cmp al,dl; pushfd; pop eax" : "=a"(eflags) : "a"(a), "d"(mem_readb(ip++)));
     if (eflags & X86_ZF)
         f |= FLAG_ZERO;
     if (eflags & X86_CF)
@@ -3187,20 +3160,17 @@ static void rst0x38(void)
     #ifdef DUMP
     printf("RST $38: IP == 0x%04X\n", (unsigned)ip - 1);
     #endif
+    #ifdef HALT_ON_RST
+    printf("RST – halting\n");
+    exit(1);
+    #endif
     push(ip);
     ip = 0x0038;
 }
 
-static inline uint64_t rdtsc(void)
-{
-    uint32_t lo, hi;
-    __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
-    return (uint64_t)lo | ((uint64_t)hi << 32);
-}
 
 
-
-static void (*handle[256])(void) =
+static void (*const handle[256])(void) =
 {
     &nop,           // 0x00
     &ld_bc_nn,
@@ -3462,16 +3432,14 @@ static void (*handle[256])(void) =
 
 void run(void)
 {
-    uint64_t last_tsc;
-
     init_video();
 
     ip = 0x0100;
     sp = 0xFFFE;
     af = 0x11B0;
-    bc = 0x0013;
-    de = 0x00D8;
-    hl = 0x014D;
+    bc = 0x0000;
+    de = 0xFF56;
+    hl = 0x000D;
 
     io_regs->tima = 0x00;
     io_regs->tma = 0x00;
@@ -3506,35 +3474,63 @@ void run(void)
     io_regs->wx = 0x00;
     io_regs->int_enable = 0x00;
 
+    for(int i = 0; i < 32; i++)
+    {
+        bpalette[i] = 0x011F;
+        opalette[i] = 0x011F;
+    }
+
+    #ifdef TRUE_TIMING
     last_tsc = rdtsc();
+    #endif
 
     for (;;)
     {
-        int change_int_status = 0;
+        int change_int_status = 0, cyc, opcode;
 
         if (want_ints_to_be != ints_enabled)
             change_int_status = 1;
 
-        if (handle[(int)memory[ip]] == NULL)
+        opcode = mem_readb(ip);
+        if (handle[opcode] == NULL)
         {
-            printf("Unknown opcode 0x%02X\n", (unsigned)memory[ip]);
+            printf("Unknown opcode 0x%02X\n", opcode);
             break;
         }
 
+        #ifdef DUMP_REGS
+        printf("IP=%04x AF=%04x BC=%04x DE=%04x HL=%04x SP=%04x I=%04x\n", (unsigned)ip, (unsigned)af, (unsigned)bc, (unsigned)de, (unsigned)hl, (unsigned)sp, (unsigned)io_regs->int_flag);
+        #endif
+
+        #ifdef DUMP
+        printf("0x%04X — ", (unsigned)ip);
+        #endif
         ip++;
-        handle[(int)memory[ip - 1]]();
+
+        if (opcode != 0xCB)
+            cyc = cycles[opcode];
+        else
+            cyc = cycles0xCB[(int)mem_readb(ip)];
+
+        handle[opcode]();
 
         if (change_int_status)
         {
+            #ifdef DUMP
             printf("Changing interrupt status from %s to %s\n", ints_enabled ? "enabled" : "disabled", want_ints_to_be ? "enabled" : "disabled");
+            #endif
             ints_enabled = want_ints_to_be;
             change_int_status = 0;
         }
 
-        uint64_t new_tsc = rdtsc();
-        uint32_t diff = new_tsc - last_tsc;
+        #ifdef TRUE_TIMING
+        new_tsc = rdtsc();
+        diff = new_tsc - last_tsc;
         last_tsc = new_tsc;
-
         update_timer(1000000LL * (uint64_t)diff / (uint64_t)rdtsc_resolution);
+        #else
+        update_timer(cyc);
+        #endif
+        generate_interrupts();
     }
 }

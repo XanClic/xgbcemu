@@ -5,12 +5,12 @@
 void push(uint16_t value)
 {
     sp -= 2;
-    *((uint16_t *)&memory[sp]) = value;
+    mem_writew(sp, value);
 }
 
 uint16_t pop(void)
 {
-    uint16_t ret = *((uint16_t *)&memory[sp]);
+    uint16_t ret = mem_readw(sp);
     sp += 2;
     return ret;
 }

@@ -5,6 +5,15 @@
 
 #include "gbc.h"
 
+#define CART_TYPE(id, mbctype, extram, battery, timer, rumble) \
+    case id: \
+        mbc = mbctype; \
+        ext_ram = extram; \
+        batt = battery; \
+        rtc = timer; \
+        rmbl = rumble; \
+        break;
+
 static const unsigned char id[0x30] =
 {
     0xCE, 0xED, 0x66, 0x66, 0xCC, 0x0D, 0x00, 0x0B, 0x03, 0x73, 0x00, 0x83, 0x00, 0x0C, 0x00, 0x0D,
@@ -14,36 +23,45 @@ static const unsigned char id[0x30] =
 
 void load_rom(const char *fname)
 {
-    FILE *fp;
+    uint8_t *start_of_rom;
+    int cart_type;
+
+    init_memory();
 
     fp = fopen(fname, "r");
     if (fp == NULL)
-        exit(1);
-
-    memory = malloc(65536);
-    io_regs = (struct io *)&memory[0xFF00];
-    fread(memory, 32, 1024, fp);
-
-    fclose(fp);
-
-    if (memcmp(id, memory + 0x104, sizeof(id)))
     {
-        printf("Bad ROM!\n");
+        perror("Couldn't read file");
+        exit(1);
+    }
+
+    start_of_rom = malloc(0x150);
+    if (start_of_rom == NULL)
+    {
+        perror("Couldn't allocate memory");
+        exit(1);
+    }
+
+    fread(start_of_rom, 1, 0x150, fp);
+
+    if (memcmp(id, start_of_rom + 0x104, sizeof(id)))
+    {
+        fprintf(stderr, "Bad ROM!\n");
         exit(1);
     }
 
     printf("Loading \"");
     for (int i = 0x134; i < 0x143; i++)
     {
-        if (!memory[i])
+        if (!start_of_rom[i])
             break;
-        printf("%c", memory[i]);
+        printf("%c", start_of_rom[i]);
     }
-    printf("\", %s...\n", (memory[0x143] & 0x80) ? "GBC" : "GB");
+    printf("\", %s...\n", (start_of_rom[0x143] & 0x80) ? "GBC" : "GB");
 
-    card_type = memory[0x147];
-    rom_size = memory[0x148];
-    ram_size = memory[0x149];
+    cart_type = start_of_rom[0x147];
+    rom_size = start_of_rom[0x148];
+    ram_size = start_of_rom[0x149];
 
     switch (rom_size)
     {
@@ -59,7 +77,7 @@ void load_rom(const char *fname)
         default:
             if (rom_size > 6)
             {
-                printf("Invalid ROM size 0x%02X.\n", rom_size);
+                fprintf(stderr, "Invalid ROM size 0x%02X.\n", rom_size);
                 exit(1);
             }
             rom_size = 2 << rom_size;
@@ -81,18 +99,52 @@ void load_rom(const char *fname)
             ram_size = 16;
             break;
         default:
-            printf("Invalid RAM size 0x%02X.\n", ram_size);
+            fprintf(stderr, "Invalid RAM size 0x%02X.\n", ram_size);
             exit(1);
     }
 
     printf("%i ROM banks, %i RAM banks.\n", rom_size, ram_size);
 
-    vidmem = malloc(256 * 256 * 4);
-    memset(vidmem, 255, 256 * 256 * 4);
+    switch (cart_type)
+    {
+        CART_TYPE(0x00, 0, 0, 0, 0, 0);
+        CART_TYPE(0x01, 1, 0, 0, 0, 0);
+        CART_TYPE(0x02, 1, 1, 0, 0, 0);
+        CART_TYPE(0x03, 1, 1, 1, 0, 0);
+        CART_TYPE(0x05, 2, 0, 0, 0, 0);
+        CART_TYPE(0x06, 2, 0, 1, 0, 0);
+        CART_TYPE(0x08, 0, 1, 0, 0, 0);
+        CART_TYPE(0x09, 0, 1, 1, 0, 0);
+        CART_TYPE(0x0F, 3, 0, 1, 1, 0);
+        CART_TYPE(0x10, 3, 1, 1, 1, 0);
+        CART_TYPE(0x11, 3, 0, 0, 0, 0);
+        CART_TYPE(0x12, 3, 1, 0, 0, 0);
+        CART_TYPE(0x13, 3, 1, 1, 0, 0);
+        CART_TYPE(0x19, 5, 0, 0, 0, 0);
+        CART_TYPE(0x1A, 5, 1, 0, 0, 0);
+        CART_TYPE(0x1B, 5, 1, 1, 0, 0);
+        CART_TYPE(0x1C, 5, 0, 0, 0, 1);
+        CART_TYPE(0x1D, 5, 1, 0, 0, 1);
+        CART_TYPE(0x1E, 5, 1, 1, 0, 1);
+        default:
+            fprintf(stderr, "Unknown cartridge type 0x%02X.\n", cart_type);
+            exit(1);
+    }
+
+    printf("Cartridge type: ROM");
+    if (mbc)
+        printf("+MBC%i", mbc);
+    if (ext_ram)
+        printf("+RAM");
+    if (batt)
+        printf("+BATT");
+    if (rtc)
+        printf("+TIMER");
+    if (rmbl)
+        printf("+RUMBLE");
+    printf("\n");
+
+    load_memory();
 
     run();
-
-    free(memory);
-
-    return;
 }
