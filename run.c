@@ -3476,12 +3476,13 @@ void run(void)
     btm[1] = (uint8_t *)&full_vidram[0x3800];
     bwtd[0] = (uint8_t *)&full_vidram[0x0000];
     bwtd[1] = (uint8_t *)&full_vidram[0x2000];
-    wtm = (uint8_t *)&vidram[0x1800];
+    wtm[0] = (uint8_t *)&vidram[0x1800];
+    wtm[1] = (uint8_t *)&vidram[0x3800];
 
     for(int i = 0; i < 32; i++)
     {
-        bpalette[i] = 0x011F;
-        opalette[i] = 0x011F;
+        bpalette[i] = 0x7FFF;
+        opalette[i] = 0x7FFF;
     }
 
     #ifdef TRUE_TIMING
