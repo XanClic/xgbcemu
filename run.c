@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "gbc.h"
 
@@ -10,7 +11,7 @@
 
 // #define HALT_ON_RST
 
-// #define TRUE_TIMING
+#define TRUE_TIMING
 
 #define X86_ZF (1 << 6)
 #define X86_CF (1 << 0)
@@ -1219,14 +1220,7 @@ static void halt(void)
     interrupt_issued = 0;
     while (!interrupt_issued)
     {
-        #ifdef TRUE_TIMING
-        new_tsc = rdtsc();
-        diff = new_tsc - last_tsc;
-        last_tsc = new_tsc;
-        update_timer(1000000LL * (uint64_t)diff / (uint64_t)rdtsc_resolution);
-        #else
         update_timer(1);
-        #endif
         generate_interrupts();
     }
 }
@@ -3432,6 +3426,10 @@ static void (*const handle[256])(void) =
 
 void run(void)
 {
+    #ifdef TRUE_TIMING
+    int64_t too_short = 0, collect_sleep_time = 0;
+    #endif
+
     init_video();
 
     ip = 0x0100;
@@ -3529,14 +3527,22 @@ void run(void)
             change_int_status = 0;
         }
 
+        update_timer(cyc);
+        generate_interrupts();
+
         #ifdef TRUE_TIMING
         new_tsc = rdtsc();
         diff = new_tsc - last_tsc;
         last_tsc = new_tsc;
-        update_timer(1000000LL * (uint64_t)diff / (uint64_t)rdtsc_resolution);
-        #else
-        update_timer(cyc);
+
+        too_short = cyc - 1000LL * (uint64_t)diff / (uint64_t)rdtsc_resolution;
+        collect_sleep_time += too_short;
+
+        if (collect_sleep_time >= 10000)
+        {
+            nanosleep(&(struct timespec){ .tv_nsec = collect_sleep_time * 1000 }, NULL);
+            collect_sleep_time = 0;
+        }
         #endif
-        generate_interrupts();
     }
 }

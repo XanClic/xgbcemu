@@ -51,11 +51,11 @@ void init_video(void)
     {
         .it_interval =
         {
-            .tv_nsec = 10000000
+            .tv_nsec = 1000000
         },
         .it_value =
         {
-            .tv_nsec = 10000000
+            .tv_nsec = 1000000
         }
     };
 
@@ -65,7 +65,7 @@ void init_video(void)
     {
         while (!*((volatile uint32_t *)&rdtsc_resolution));
 
-        resolutions[i] = *((volatile uint32_t *)&rdtsc_resolution) / 10;
+        resolutions[i] = *((volatile uint32_t *)&rdtsc_resolution);
         if (i < 9)
         {
             old_rdtsc = 0;
