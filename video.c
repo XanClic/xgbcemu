@@ -191,7 +191,7 @@ void draw_line(int line)
         int obj_height = (io_regs->lcdc & (1 << 2)) ? 16 : 8;
         int count = 0;
 
-        for (int sprite = 0; sprite < 40; sprite++)
+        for (int sprite = 40; sprite >= 0; sprite--)
         {
             uint8_t *tdat;
             int bx = oam[sprite].x, by = oam[sprite].y, flags = oam[sprite].flags;
@@ -210,6 +210,9 @@ void draw_line(int line)
                 continue;
 
             int ry = line - by;
+
+            if (flags & (1 << 6))
+                ry = (obj_height - 1) - ry;
 
             if (obj_height == 8)
             {
@@ -231,16 +234,18 @@ void draw_line(int line)
 
             for (int rx = 0; rx < 8; rx++)
             {
-                if ((unsigned)(bx + rx) & ~0xFF)
-                    continue;
+                int val, bmask;
 
-                int val, bmask = 1 << (7 - rx);
+                if (flags & (1 << 5))
+                    bmask = 1 << rx;
+                else
+                    bmask = 1 << (7 - rx);
 
                 val = !!(tdat[ry * 2] & bmask);
                 val += !!(tdat[ry * 2 + 1] & bmask) << 1;
 
                 if (val)
-                    ((uint32_t *)vidmem)[abs_line * 256 + bx + rx] = pal2rgb(pal[val]);
+                    ((uint32_t *)vidmem)[abs_line * 256 + ((bx + rx) & 0xFF)] = pal2rgb(pal[val]);
             }
         }
     }
