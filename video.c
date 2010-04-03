@@ -26,6 +26,8 @@ void init_video(void)
         exit(1);
     }
 
+    atexit(SDL_Quit);
+
     #ifndef DISPLAY_ALL
     screen = SDL_SetVideoMode(160, 144, 32, SDL_HWSURFACE);
     #else
@@ -171,8 +173,83 @@ void draw_line(int line)
     int abs_line = (line + sy) & 0xFF;
 
     while (SDL_PollEvent(&evt))
-        if (evt.type == SDL_QUIT)
-            exit(0);
+    {
+        int change;
+
+        switch (evt.type)
+        {
+            case SDL_QUIT:
+                exit(0);
+                break;
+            case SDL_KEYDOWN:
+                change = 1;
+                switch (evt.key.keysym.sym)
+                {
+                    case SDLK_a:
+                        keystates |= VK_A;
+                        break;
+                    case SDLK_b:
+                        keystates |= VK_B;
+                        break;
+                    case SDLK_RETURN:
+                        keystates |= VK_START;
+                        break;
+                    case SDLK_s:
+                        keystates |= VK_SELECT;
+                        break;
+                    case SDLK_LEFT:
+                        keystates |= VK_LEFT;
+                        break;
+                    case SDLK_RIGHT:
+                        keystates |= VK_RIGHT;
+                        break;
+                    case SDLK_UP:
+                        keystates |= VK_UP;
+                        break;
+                    case SDLK_DOWN:
+                        keystates |= VK_DOWN;
+                        break;
+                    default:
+                        change = 0;
+                }
+                if (change)
+                    update_keyboard();
+                break;
+            case SDL_KEYUP:
+                change = 1;
+                switch (evt.key.keysym.sym)
+                {
+                    case SDLK_a:
+                        keystates &= ~VK_A;
+                        break;
+                    case SDLK_b:
+                        keystates &= ~VK_B;
+                        break;
+                    case SDLK_RETURN:
+                        keystates &= ~VK_START;
+                        break;
+                    case SDLK_s:
+                        keystates &= ~VK_SELECT;
+                        break;
+                    case SDLK_LEFT:
+                        keystates &= ~VK_LEFT;
+                        break;
+                    case SDLK_RIGHT:
+                        keystates &= ~VK_RIGHT;
+                        break;
+                    case SDLK_UP:
+                        keystates &= ~VK_UP;
+                        break;
+                    case SDLK_DOWN:
+                        keystates &= ~VK_DOWN;
+                        break;
+                    default:
+                        change = 0;
+                }
+                if (change)
+                    update_keyboard();
+        }
+    }
 
     if (!(io_regs->lcdc & (1 << 7)))
         return;
@@ -315,6 +392,11 @@ void draw_line(int line)
 
     if (line == 143)
     {
+        #ifdef DISPLAY_ALL
+        for (int rem = 144; rem < 256; rem++)
+            draw_line(rem);
+        #endif
+
         SDL_LockSurface(screen);
         #ifndef DISPLAY_ALL
         for (int y = 0; y < 144; y++)

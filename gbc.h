@@ -156,6 +156,7 @@ uint16_t pop(void);
 void push(uint16_t value);
 void redraw(void);
 void run(void);
+void update_keyboard(void);
 void update_timer(int cycles_gone);
 
 #endif
