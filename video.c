@@ -200,21 +200,27 @@ void draw_line(int line)
             bx -= 8;
             by -= 16;
 
-            if ((bx <= -8) || (by > line) || (bx >= 160) || (by + obj_height <= line))
+            if ((by > line) || (by + obj_height <= line))
+                continue;
+
+            if (count++ >= 10)
+                break;
+
+            if ((bx <= -8) || (bx >= 160))
                 continue;
 
             int ry = line - by;
 
             if (obj_height == 8)
             {
-                if (flags & (1 << 3))
+                if (!(flags & (1 << 3)))
                     tdat = &full_vidram[0x0000 + oam[sprite].num * 16];
                 else
                     tdat = &full_vidram[0x2000 + oam[sprite].num * 16];
             }
             else
             {
-                if (flags & (1 << 3))
+                if (!(flags & (1 << 3)))
                     tdat = &full_vidram[0x0000 + (oam[sprite].num & 0xFE) * 16];
                 else
                     tdat = &full_vidram[0x2000 + (oam[sprite].num & 0xFE) * 16];
@@ -225,21 +231,18 @@ void draw_line(int line)
 
             for (int rx = 0; rx < 8; rx++)
             {
-                if (bx + rx >= 256)
+                if ((unsigned)(bx + rx) & ~0xFF)
                     continue;
 
-                int val;
-                val = !!(tdat[ry * 2] & (1 << (7 - rx)));
-                val += !!(tdat[ry * 2 + 1] & (1 << (7 - rx))) << 1;
+                int val, bmask = 1 << (7 - rx);
 
-                // if (val)
+                val = !!(tdat[ry * 2] & bmask);
+                val += !!(tdat[ry * 2 + 1] & bmask) << 1;
+
+                if (val)
                     ((uint32_t *)vidmem)[abs_line * 256 + bx + rx] = pal2rgb(pal[val]);
             }
-
-            if (++count >= 10)
-                break;
         }
-        // exit(0);
     }
 
     if (io_regs->lcdc & (1 << 0))
