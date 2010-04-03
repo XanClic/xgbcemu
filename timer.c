@@ -4,33 +4,58 @@
 
 static const int collect_overflow[4] =
 {
-    244141, //   4096 Hz
-      3815, // 262144 Hz
-     15259, //  65536 Hz
-     61035  //  16384 Hz
+    256, //   4096 Hz
+      4, // 262144 Hz
+     16, //  65536 Hz
+     64  //  16384 Hz
 };
 
-void update_timer(uint64_t us_gone)
+void update_timer(int cycles_gone)
 {
-    static int collected = 0, vsync_collect = 0;
+    static int collected = 0, vsync_collect = 0, div_collect = 0;
+    int hblank_start = 0;
+
+    div_collect += cycles_gone;
+    while (div_collect >= 64)
+    {
+        io_regs->div++;
+        div_collect -= cycles_gone;
+    }
 
     if (lcd_on)
     {
-        vsync_collect += us_gone;
-        if (vsync_collect >= 108714) // Eine Zeile wäre jetzt fertig
-        {
-            vsync_collect -= 108714;
+        vsync_collect += cycles_gone;
 
-            if (io_regs->stat & (1 << 3))
-                io_regs->int_flag |= INT_LCDC_STAT;
+        io_regs->stat &= ~3;
+        if (io_regs->ly >= 144)
+            io_regs->stat |= 1;
+        else
+        {
+            if (vsync_collect < 51);
+            else if (vsync_collect < 71)
+                io_regs->stat |= 2;
+            else
+                io_regs->stat |= 3;
+        }
+
+        while (vsync_collect >= 114) // Eine Zeile wäre jetzt fertig
+        {
+            vsync_collect -= 114;
+
+            hblank_start = 1;
+            if (hdma_on)
+                hdma_copy_16b();
 
             if (++io_regs->ly > 153)
+            {
                 io_regs->ly = 0;
+                redraw();
+            }
             if (io_regs->ly == 144)
             {
+                io_regs->stat &= ~3;
+                io_regs->stat |= 1;
                 io_regs->int_flag |= INT_VBLANK;
-                if (io_regs->stat & (1 << 4))
-                    io_regs->int_flag |= INT_LCDC_STAT;
             }
 
             if (io_regs->lyc == io_regs->ly)
@@ -41,23 +66,27 @@ void update_timer(uint64_t us_gone)
             }
             else
                 io_regs->stat &= ~(1 << 2);
-
-            generate_interrupts();
         }
+
+        if ((io_regs->stat & (1 << 5)) && ((io_regs->stat & 3) == 2))
+            io_regs->int_flag |= INT_LCDC_STAT;
+        else if ((io_regs->stat & (1 << 4)) && ((io_regs->stat & 3) == 1))
+            io_regs->int_flag |= INT_LCDC_STAT;
+        else if ((io_regs->stat & (1 << 3)) && hblank_start)
+            io_regs->int_flag |= INT_LCDC_STAT;
     }
 
     if (!(io_regs->tac & (1 << 2)))
         return;
 
-    collected += us_gone;
-    if (collected >= collect_overflow[io_regs->tac & 3])
+    collected += cycles_gone;
+    while (collected >= collect_overflow[io_regs->tac & 3])
     {
         collected -= collect_overflow[io_regs->tac & 3];
         if (!++io_regs->tima)
         {
             io_regs->tima = io_regs->tma;
             io_regs->int_flag = INT_TIMER;
-            generate_interrupts();
         }
     }
 }

@@ -3,7 +3,7 @@
 
 #include "gbc.h"
 
-#define DUMP
+// #define DUMP
 
 void generate_interrupts(void)
 {
@@ -12,28 +12,52 @@ void generate_interrupts(void)
     if (!ints_enabled || !cause)
         return;
 
+    want_ints_to_be = 0;
     ints_enabled = 0;
     push(ip);
 
     if (cause & INT_P10_P13) // Hi-Lo of P10-P13
+    {
+        #ifdef DUMP
+        printf("Issuing P10/P13 hi-lo\n");
+        #endif
         cause = 1 << 4;
+    }
     else if (cause & INT_SERIAL) // Serial transfer completed
+    {
+        #ifdef DUMP
+        printf("Issuing serial\n");
+        #endif
         cause = 1 << 3;
+    }
     else if (cause & INT_TIMER) // Timer overflow
+    {
+        #ifdef DUMP
+        printf("Issuing timer\n");
+        #endif
         cause = 1 << 2;
+    }
     else if (cause & INT_LCDC_STAT) // LCDC STAT
+    {
+        #ifdef DUMP
+        printf("Issuing LCDC\n");
+        #endif
         cause = 1 << 1;
+    }
     else if (cause & INT_VBLANK) // V Blank
+    {
+        #ifdef DUMP
+        printf("Issuing VBlank\n");
+        #endif
         cause = 1 << 0;
+    }
     else
     {
-        fprintf(stderr, "Unknown interrupt cause 0x%02X\n", cause);
-        exit(1);
+        #ifdef DUMP
+        printf("Unknown interrupt cause 0x%02X\n", cause);
+        #endif
+        return;
     }
-
-    #ifdef DUMP
-    printf("Generating interrupt because of 0x%02X\n", cause);
-    #endif
 
     interrupt_issued = 1;
 

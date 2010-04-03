@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "gbc.h"
 
@@ -19,13 +20,13 @@ static void int_enable(uint8_t value)
 
 static void store_and_redraw(uint8_t value, int offset)
 {
-    memory[0xFF00 + offset] = value;
+    oam_io[0x100 + offset] = value;
     redraw();
 }
 
 static void nop(uint8_t value, int offset)
 {
-    memory[0xFF00 + offset] = value;
+    oam_io[0x100 + offset] = value;
 }
 
 static void lcdc(uint8_t value)
@@ -48,13 +49,253 @@ static void p1(uint8_t value)
     io_regs->p1 = value;
 }
 
+static void dma(uint8_t value)
+{
+    int addr = value << 8;
+
+    if (value > 0xF1)
+        return;
+
+    for (int i = 0; i < 160; i++)
+        mem_writeb(0xFE00 + i, mem_readb(addr + i));
+}
+
+static void stat(uint8_t value)
+{
+    io_regs->stat &= 7;
+    io_regs->stat |= value & ~7;
+}
+
+static void divreg(void)
+{
+    io_regs->div = 0;
+}
+
+static void svbk(uint8_t value)
+{
+    int new_bank = value & 0x07;
+    if (!new_bank)
+        new_bank = 1;
+
+    io_regs->svbk = new_bank;
+
+    int_wram = &full_int_wram[(new_bank - 1) * 4096];
+}
+
+static void vbk(uint8_t value)
+{
+    value &= 1;
+    io_regs->svbk = value;
+    vidram = &full_vidram[value * 8192];
+}
+
+/**
+ * Background palette index.
+ *
+ * Writing to this register selects the palette index to be used for operations
+ * on the BCPD register.
+ *
+ * Bit  0    : If set, use the MSB instead of the LSB.
+ * Bits 1 – 5: Palette index
+ * Bit  7    : If set, increment the index after each write to BCPD.
+ */
+static void bcps(uint8_t value)
+{
+    int pval = bpalette[(value >> 1) & 0x1F];
+    int high = value & 1;
+
+    io_regs->bcps = value & 0xBF;
+    io_regs->bcpd = high ? (pval >> 8) : (pval & 0xFF);
+}
+
+/**
+ * Background palette data.
+ *
+ * Reading from this register returns the palette index' data selected by BCPS.
+ * Writing to it changes that data.
+ *
+ * Bits 0 – 7: New value
+ */
+static void bcpd(uint8_t value)
+{
+    int i = (io_regs->bcps >> 1) & 0x1F;
+    int high = io_regs->bcps & 1;
+
+    io_regs->bcpd = value;
+
+    if (high)
+    {
+        // Change high byte (MSb must be reset)
+        bpalette[i] &= 0x00FF;
+        bpalette[i] |= (value << 8) & 0x7F00;
+    }
+    else
+    {
+        // Change low byte
+        bpalette[i] &= 0xFF00;
+        bpalette[i] |= value;
+    }
+
+    // Use auto-increment mode
+    if (io_regs->bcps & 0x80)
+        bcps(io_regs->bcps + 1);
+}
+
+/**
+ * Object palette index.
+ *
+ * See BCPS for more information.
+ */
+static void ocps(uint8_t value)
+{
+    int pval = opalette[(value >> 1) & 0x1F];
+    int high = value & 1;
+
+    io_regs->bcps = value & 0xBF;
+    io_regs->bcpd = high ? (pval >> 8) : (pval & 0xFF);
+}
+
+/**
+ * Object palette data.
+ *
+ * See BCPD for more information.
+ */
+static void ocpd(uint8_t value)
+{
+    int i = (io_regs->ocps >> 1) & 0x1F;
+    int high = io_regs->ocps & 1;
+
+    io_regs->ocpd = value;
+
+    if (high)
+    {
+        // Change high byte (MSB must be reset)
+        opalette[i] &= 0x00FF;
+        opalette[i] |= (value << 8) & 0x7F00;
+    }
+    else
+    {
+        // Change low byte
+        opalette[i] &= 0xFF00;
+        opalette[i] |= value;
+    }
+
+    // Use auto-increment mode
+    if (io_regs->ocps & 0x80)
+        ocps(io_regs->ocps + 1);
+}
+
+static uint16_t hdma_src = 0, hdma_dest = 0;
+
+static void hdma1(uint8_t val)
+{
+    if ((val >= 0x80) && (val < 0xA0))
+        val = 0;
+    if (val >= 0xE0)
+        val -= 0x20;
+
+    hdma_src &= 0x00F0;
+    hdma_src |= (val << 8);
+
+    io_regs->hdma1 = val;
+}
+
+static void hdma2(uint8_t val)
+{
+    hdma_src &= 0xFF00;
+    hdma_src |= val & 0xF0;
+
+    io_regs->hdma2 = val;
+}
+
+static void hdma3(uint8_t val)
+{
+    val &= 0x1F;
+    val |= 0x80;
+
+    hdma_dest &= 0x00F0;
+    hdma_dest |= (val << 8);
+
+    io_regs->hdma3 = val;
+}
+
+static void hdma4(uint8_t val)
+{
+    hdma_dest &= 0xFF00;
+    hdma_dest |= val & 0xF0;
+
+    io_regs->hdma4 = val;
+}
+
+void hdma_copy_16b(void)
+{
+    if (hdma_src < 0x4000)
+        memcpy(&vidram[hdma_dest - 0x8000], &base_rom_ptr[hdma_src], 16);
+    else if (hdma_src < 0x8000)
+        memcpy(&vidram[hdma_dest - 0x8000], &rom_bank_ptr[hdma_src - 0x4000], 16);
+    else if (hdma_src < 0xC000)
+        memcpy(&vidram[hdma_dest - 0x8000], &ext_ram_ptr[hdma_src - 0xA000], 16);
+    else if (hdma_src < 0xD000)
+        memcpy(&vidram[hdma_dest - 0x8000], &int_ram[hdma_src - 0xC000], 16);
+    else
+        memcpy(&vidram[hdma_dest - 0x8000], &int_wram[hdma_src - 0xD000], 16);
+
+    hdma_src += 16;
+    hdma_dest += 16;
+
+    io_regs->hdma1 = hdma_src >> 8;
+    io_regs->hdma2 = hdma_src & 0xFF;
+    io_regs->hdma3 = hdma_dest >> 8;
+    io_regs->hdma4 = hdma_dest & 0xFF;
+    if (--io_regs->hdma5 & 0x80)
+        hdma_on = 0;
+
+    update_timer(8);
+    if (hdma_on)
+        generate_interrupts();
+}
+
+static void hdma5(uint8_t val)
+{
+    if (hdma_on)
+    {
+        if (val & 0x80)
+            io_regs->hdma5 = val & 0x7F;
+        else
+        {
+            io_regs->hdma5 = 0xFF;
+            hdma_on = 0;
+        }
+        return;
+    }
+
+    io_regs->hdma5 = val & 0x7F;
+
+    if (val & 0x80)
+    {
+        hdma_on = 1;
+        return;
+    }
+
+    while (!(io_regs->hdma5 & 0x80))
+        hdma_copy_16b();
+
+    generate_interrupts();
+}
+
+static void key1(uint8_t val)
+{
+    io_regs->key1 &= 0x80;
+    io_regs->key1 |= val & 1;
+}
+
 static void (*const io_handlers[256])(uint8_t value) =
 {
     &p1, // p1
     (void (*)(uint8_t))&nop, // sb
     (void (*)(uint8_t))&nop, // sc
     NULL, // rsvd1
-    NULL, // div
+    (void (*)(uint8_t))&divreg, // div
     (void (*)(uint8_t))&nop, // tima
     (void (*)(uint8_t))&nop, // tma
     (void (*)(uint8_t))&nop, // tac
@@ -66,67 +307,76 @@ static void (*const io_handlers[256])(uint8_t value) =
     NULL, // rsvd2
     NULL, // rsvd2
     &int_flag, // int_flag
-    NULL, // nr10
-    NULL, // nr11
-    NULL, // nr12
-    NULL, // nr13
-    NULL, // nr14
-    NULL, // rsvd3
-    NULL, // nr21
-    NULL, // nr22
-    NULL, // nr23
-    NULL, // nr24
-    NULL, // nr30
-    NULL, // nr31
-    NULL, // nr32
-    NULL, // nr33
-    NULL, // nr34
-    NULL, // rsvd4
-    NULL, // nr41
-    NULL, // nr42
-    NULL, // nr43
-    NULL, // nr44
-    NULL, // nr50
-    NULL, // nr51
-    NULL, // nr52
-    NULL, // rsvd5
-    NULL, // rsvd5
-    NULL, // rsvd5
-    NULL, // rsvd5
-    NULL, // rsvd5
-    NULL, // rsvd5
-    NULL, // rsvd5
-    NULL, // rsvd5
-    NULL, // rsvd5
-    NULL, // wave_pat
-    NULL, // wave_pat
-    NULL, // wave_pat
-    NULL, // wave_pat
-    NULL, // wave_pat
-    NULL, // wave_pat
-    NULL, // wave_pat
-    NULL, // wave_pat
-    NULL, // wave_pat
-    NULL, // wave_pat
-    NULL, // wave_pat
-    NULL, // wave_pat
-    NULL, // wave_pat
-    NULL, // wave_pat
-    NULL, // wave_pat
-    NULL, // wave_pat
+    (void (*)(uint8_t))&nop, // nr10
+    (void (*)(uint8_t))&nop, // nr11
+    (void (*)(uint8_t))&nop, // nr12
+    (void (*)(uint8_t))&nop, // nr13
+    (void (*)(uint8_t))&nop, // nr14
+    (void (*)(uint8_t))&nop, // rsvd3
+    (void (*)(uint8_t))&nop, // nr21
+    (void (*)(uint8_t))&nop, // nr22
+    (void (*)(uint8_t))&nop, // nr23
+    (void (*)(uint8_t))&nop, // nr24
+    (void (*)(uint8_t))&nop, // nr30
+    (void (*)(uint8_t))&nop, // nr31
+    (void (*)(uint8_t))&nop, // nr32
+    (void (*)(uint8_t))&nop, // nr33
+    (void (*)(uint8_t))&nop, // nr34
+    (void (*)(uint8_t))&nop, // rsvd4
+    (void (*)(uint8_t))&nop, // nr41
+    (void (*)(uint8_t))&nop, // nr42
+    (void (*)(uint8_t))&nop, // nr43
+    (void (*)(uint8_t))&nop, // nr44
+    (void (*)(uint8_t))&nop, // nr50
+    (void (*)(uint8_t))&nop, // nr51
+    (void (*)(uint8_t))&nop, // nr52
+    (void (*)(uint8_t))&nop, // rsvd5
+    (void (*)(uint8_t))&nop, // rsvd5
+    (void (*)(uint8_t))&nop, // rsvd5
+    (void (*)(uint8_t))&nop, // rsvd5
+    (void (*)(uint8_t))&nop, // rsvd5
+    (void (*)(uint8_t))&nop, // rsvd5
+    (void (*)(uint8_t))&nop, // rsvd5
+    (void (*)(uint8_t))&nop, // rsvd5
+    (void (*)(uint8_t))&nop, // rsvd5
+    (void (*)(uint8_t))&nop, // wave_pat
+    (void (*)(uint8_t))&nop, // wave_pat
+    (void (*)(uint8_t))&nop, // wave_pat
+    (void (*)(uint8_t))&nop, // wave_pat
+    (void (*)(uint8_t))&nop, // wave_pat
+    (void (*)(uint8_t))&nop, // wave_pat
+    (void (*)(uint8_t))&nop, // wave_pat
+    (void (*)(uint8_t))&nop, // wave_pat
+    (void (*)(uint8_t))&nop, // wave_pat
+    (void (*)(uint8_t))&nop, // wave_pat
+    (void (*)(uint8_t))&nop, // wave_pat
+    (void (*)(uint8_t))&nop, // wave_pat
+    (void (*)(uint8_t))&nop, // wave_pat
+    (void (*)(uint8_t))&nop, // wave_pat
+    (void (*)(uint8_t))&nop, // wave_pat
+    (void (*)(uint8_t))&nop, // wave_pat
     &lcdc, // lcdc
-    (void (*)(uint8_t))&nop, // stat
+    &stat, // stat
     (void (*)(uint8_t))&store_and_redraw, // scy
     (void (*)(uint8_t))&store_and_redraw, // scx
     NULL, // ly
     NULL, // lyc
-    NULL, // dma
+    &dma, // dma
     (void (*)(uint8_t))&store_and_redraw, // bgp
     (void (*)(uint8_t))&store_and_redraw, // obp0
     (void (*)(uint8_t))&store_and_redraw, // obp1
     (void (*)(uint8_t))&store_and_redraw, // wy
     (void (*)(uint8_t))&store_and_redraw, // wx
     NULL, // rsvd6
+    &key1, // key1
+    (void (*)(uint8_t))&nop, // rsvd6
+    &vbk, // vbk
+    NULL, // rsvd6
+    &hdma1, // hdma1
+    &hdma2, // hdma2
+    &hdma3, // hdma3
+    &hdma4, // hdma4
+    &hdma5, // hdma5
     NULL, // rsvd6
     NULL, // rsvd6
     NULL, // rsvd6
@@ -145,24 +395,15 @@ static void (*const io_handlers[256])(uint8_t value) =
     NULL, // rsvd6
     NULL, // rsvd6
     NULL, // rsvd6
+    &bcps, // bcps
+    &bcpd, // bcpd
+    &ocps, // ocps
+    &ocpd, // ocpd
     NULL, // rsvd6
     NULL, // rsvd6
     NULL, // rsvd6
     NULL, // rsvd6
-    NULL, // rsvd6
-    NULL, // rsvd6
-    NULL, // rsvd6
-    NULL, // rsvd6
-    NULL, // rsvd6
-    NULL, // rsvd6
-    NULL, // rsvd6
-    NULL, // rsvd6
-    NULL, // rsvd6
-    NULL, // rsvd6
-    NULL, // rsvd6
-    NULL, // rsvd6
-    NULL, // rsvd6
-    NULL, // rsvd6
+    &svbk, // svbk
     NULL, // rsvd6
     NULL, // rsvd6
     NULL, // rsvd6
@@ -387,15 +628,15 @@ static const char *reg_names[256] =
     "wy",
     "wx",
     "reserved 0x4C",
-    "reserved 0x4D",
+    "key1",
     "reserved 0x4E",
-    "reserved 0x4F",
+    "vbk",
     "reserved 0x50",
-    "reserved 0x51",
-    "reserved 0x52",
-    "reserved 0x53",
-    "reserved 0x54",
-    "reserved 0x55",
+    "hdma1",
+    "hdma2",
+    "hdma3",
+    "hdma4",
+    "hdma5",
     "reserved 0x56",
     "reserved 0x57",
     "reserved 0x58",
@@ -414,15 +655,15 @@ static const char *reg_names[256] =
     "reserved 0x65",
     "reserved 0x66",
     "reserved 0x67",
-    "reserved 0x68",
-    "reserved 0x69",
-    "reserved 0x6A",
-    "reserved 0x6B",
+    "bcps",
+    "bcpd",
+    "ocpa",
+    "ocpd",
     "reserved 0x6C",
     "reserved 0x6D",
     "reserved 0x6E",
     "reserved 0x6F",
-    "reserved 0x70",
+    "svbk",
     "reserved 0x71",
     "reserved 0x72",
     "reserved 0x73",
@@ -572,7 +813,7 @@ void io_outb(uint8_t reg, uint8_t val)
 {
     if (io_handlers[reg] == NULL)
     {
-        fprintf(stderr, "No handler for write to I/O register %s!\n", reg_names[reg]);
+        fprintf(stderr, "No handler for write (0x%02X) to I/O register %s (0x%02X)!\n", (unsigned)val, reg_names[reg], (unsigned)reg);
         exit(1);
     }
     ((void (*)(uint8_t, int))io_handlers[reg])(val, reg);

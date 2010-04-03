@@ -2,6 +2,7 @@
 #define GBC_H
 
 #include <stdint.h>
+#include <stdio.h>
 
 
 struct io
@@ -53,19 +54,37 @@ struct io
     uint8_t obp1;
     uint8_t wy;
     uint8_t wx;
-    uint8_t rsvd6[179];
+    uint8_t rsvd6;
+    uint8_t key1;
+    uint8_t rsvd7;
+    uint8_t vbk;
+    uint8_t rsvd8;
+    uint8_t hdma1, hdma2, hdma3, hdma4, hdma5;
+    uint8_t rsvd9[18];
+    uint8_t bcps;
+    uint8_t bcpd;
+    uint8_t ocps;
+    uint8_t ocpd;
+    uint8_t rsvd10[4];
+    uint8_t svbk;
+    uint8_t rsvd11[142];
     uint8_t int_enable;
 } __attribute__((packed));
 
 
-extern char *memory;
 extern struct io *io_regs;
 extern int card_type, rom_size, ram_size;
 extern uint16_t _ip, _sp, _af, _bc, _de, _hl;
-extern int ints_enabled, want_ints_to_be, lcd_on;
+extern int ints_enabled, want_ints_to_be, lcd_on, double_speed;
 extern volatile int interrupt_issued, keystates;
 extern uint32_t rdtsc_resolution;
 extern void *vidmem;
+extern FILE *fp;
+extern int mbc, ext_ram, rtc, batt, rmbl;
+extern uint8_t *ext_ram_ptr, *rom_bank_ptr, *base_rom_ptr;
+extern uint8_t *int_ram, *oam_io, *vidram, *int_wram, *full_int_wram, *full_vidram;
+extern uint16_t bpalette[32], opalette[32];
+extern int hdma_on;
 #define ip _ip
 #define sp _sp
 #define af _af
@@ -114,15 +133,27 @@ extern void *vidmem;
 #define VK_UP     (KEY_UP    << 4)
 #define VK_DOWN   (KEY_DOWN  << 4)
 
+static inline int pal2rgb(int pal)
+{
+    return ((pal & 0x1F) << 19) | (((pal >> 5) & 0x1F) << 11) | ((pal >> 10) << 3);
+}
+
 
 void generate_interrupts(void);
+void hdma_copy_16b(void);
+void init_memory(void);
 void init_video(void);
 void io_outb(uint8_t reg, uint8_t val);
+void load_memory(void);
 void load_rom(const char *fname);
+void mem_writeb(uintptr_t addr, uint8_t value);
+void mem_writew(uintptr_t addr, uint16_t value);
+uint8_t mem_readb(uintptr_t addr);
+uint16_t mem_readw(uintptr_t addr);
 uint16_t pop(void);
 void push(uint16_t value);
 void redraw(void);
 void run(void);
-void update_timer(uint64_t us_gone);
+void update_timer(int cycles_gone);
 
 #endif
