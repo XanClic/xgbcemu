@@ -127,29 +127,31 @@ static void draw_bg_line(int line, int bit7val)
         else
             tdat = &bwtd[vbank][(int)(int8_t)btm[0][tile] * 16];
 
+        int b1, b2;
+
+        if (flags & (1 << 6))
+        {
+            b1 = tdat[(7 - ry) * 2];
+            b2 = tdat[(7 - ry) * 2 + 1];
+        }
+        else
+        {
+            b1 = tdat[ry * 2];
+            b2 = tdat[ry * 2 + 1];
+        }
+
         for (int rx = 0; rx < 8; rx++)
         {
-            int val;
-            switch (flags & (3 << 5))
-            {
-                case (0 << 5):
-                    val = !!(tdat[ry * 2] & (1 << (7 - rx)));
-                    val += !!(tdat[ry * 2 + 1] & (1 << (7 - rx))) << 1;
-                    break;
-                case (1 << 5):
-                    val = !!(tdat[ry * 2] & (1 << rx));
-                    val += !!(tdat[ry * 2 + 1] & (1 << rx)) << 1;
-                    break;
-                case (2 << 5):
-                    val = !!(tdat[(7 - ry) * 2] & (1 << (7 - rx)));
-                    val += !!(tdat[(7 - ry) * 2 + 1] & (1 << (7 - rx))) << 1;
-                    break;
-                default:
-                    val = !!(tdat[(7 - ry) * 2] & (1 << rx));
-                    val += !!(tdat[(7 - ry) * 2 + 1] & (1 << rx)) << 1;
-            }
+            int val, mask;
 
-            ((uint32_t *)vidmem)[line + bx + rx] = pal2rgb(pal[val]);
+            if (flags & (1 << 5))
+                mask = 1 << rx;
+            else
+                mask = 1 << (7 - rx);
+
+            val = !!(b1 & mask) + !!(b2 & mask) * 2;
+
+            ((uint32_t *)vidmem)[line + bx + rx] = pal2rgb(pal[val]) | (val << 24);
         }
 
         tile++;
@@ -180,10 +182,63 @@ void draw_line(int line)
     else
         draw_bg_line(abs_line, 0 << 7);
 
-    if ((io_regs->lcdc & (1 << 5)) && (io_regs->wx >= 7) && (io_regs->wx <= 166) && (io_regs->wy <= 143))
+    if ((io_regs->lcdc & (1 << 5)) && (io_regs->wx >= 7) && (io_regs->wx <= 166) && (io_regs->wy <= 143) && (io_regs->wy >= line))
     {
-        printf("WINDOW %i %i\n", io_regs->wx - 7, io_regs->wy);
-        exit(0);
+        // TODO
+        /*
+        int wx = io_regs->wx - 7, wy = io_regs->wy;
+        int yoff = line - wy;
+        int by = yoff & 0xF8, ry = yoff & 0x07;
+        int tile = by * 4;
+
+        for (int bx = 0; bx < 256; bx += 8)
+        {
+            int flags = wtm[1][tile];
+
+            if (bx + wx >= 256)
+                break;
+
+            uint8_t *tdat;
+            int vbank = !!(flags & (1 << 3));
+            uint16_t *pal = &bpalette[(flags & 7) * 4];
+
+            if (bwtd[0] == (uint8_t *)&full_vidram[0x0000])
+                tdat = &bwtd[vbank][(unsigned)wtm[0][tile] * 16];
+            else
+                tdat = &bwtd[vbank][(int)(int8_t)wtm[0][tile] * 16];
+
+            for (int rx = 0; rx < 8; rx++)
+            {
+                int val;
+
+                if (bx + rx + wx >= 256)
+                    break;
+
+                switch (flags & (3 << 5))
+                {
+                    case (0 << 5):
+                        val = !!(tdat[ry * 2] & (1 << (7 - rx)));
+                        val += !!(tdat[ry * 2 + 1] & (1 << (7 - rx))) << 1;
+                        break;
+                    case (1 << 5):
+                        val = !!(tdat[ry * 2] & (1 << rx));
+                        val += !!(tdat[ry * 2 + 1] & (1 << rx)) << 1;
+                        break;
+                    case (2 << 5):
+                        val = !!(tdat[(7 - ry) * 2] & (1 << (7 - rx)));
+                        val += !!(tdat[(7 - ry) * 2 + 1] & (1 << (7 - rx))) << 1;
+                        break;
+                    default:
+                        val = !!(tdat[(7 - ry) * 2] & (1 << rx));
+                        val += !!(tdat[(7 - ry) * 2 + 1] & (1 << rx)) << 1;
+                }
+
+                ((uint32_t *)vidmem)[abs_line * 256 + bx + rx + wx] = pal2rgb(pal[val]);
+            }
+
+            tile++;
+        }
+        */
     }
 
     if (io_regs->lcdc & (1 << 1))
@@ -244,8 +299,13 @@ void draw_line(int line)
                 val = !!(tdat[ry * 2] & bmask);
                 val += !!(tdat[ry * 2 + 1] & bmask) << 1;
 
-                if (val)
+                if (val && !(flags & (1 << 7)))
                     ((uint32_t *)vidmem)[abs_line * 256 + ((bx + rx) & 0xFF)] = pal2rgb(pal[val]);
+                else if (val)
+                {
+                    if (!(((uint32_t *)vidmem)[abs_line * 256 + ((bx + rx) & 0xFF)] & 0xFF000000))
+                        ((uint32_t *)vidmem)[abs_line * 256 + ((bx + rx) & 0xFF)] = pal2rgb(pal[val]);
+                }
             }
         }
     }

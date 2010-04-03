@@ -9,7 +9,7 @@
 
 static int current_ram_bank = 0, current_rom_bank = 1, creg = 0, ram_val = 0, day_cry_set = 0;
 static struct tm *cur_tm = NULL;
-uint8_t *ram_banks[4] = { NULL }, *rom_banks[128] = { NULL };
+static uint8_t *ram_banks[4] = { NULL }, *rom_banks[128] = { NULL };
 
 void mbc3_ram_write(uintptr_t addr, uint8_t val)
 {

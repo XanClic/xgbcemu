@@ -33,9 +33,15 @@ static void lcdc(uint8_t value)
         lcd_on = 0;
 
     if (value & (1 << 6))
-        wtm = (uint8_t *)&vidram[0x1C00];
+    {
+        wtm[0] = (uint8_t *)&vidram[0x1C00];
+        wtm[1] = (uint8_t *)&vidram[0x3C00];
+    }
     else
-        wtm = (uint8_t *)&vidram[0x1800];
+    {
+        wtm[0] = (uint8_t *)&vidram[0x1800];
+        wtm[1] = (uint8_t *)&vidram[0x3800];
+    }
 
     if (value & (1 << 4))
     {
@@ -311,23 +317,28 @@ static void key1(uint8_t val)
     io_regs->key1 |= val & 1;
 }
 
+static void ly(void)
+{
+    io_regs->ly = 0;
+}
+
 static void (*const io_handlers[256])(uint8_t value) =
 {
     &p1, // p1
     (void (*)(uint8_t))&nop, // sb
     (void (*)(uint8_t))&nop, // sc
-    NULL, // rsvd1
+    (void (*)(uint8_t))&nop, // rsvd1
     (void (*)(uint8_t))&divreg, // div
     (void (*)(uint8_t))&nop, // tima
     (void (*)(uint8_t))&nop, // tma
     (void (*)(uint8_t))&nop, // tac
-    NULL, // rsvd2
-    NULL, // rsvd2
-    NULL, // rsvd2
-    NULL, // rsvd2
-    NULL, // rsvd2
-    NULL, // rsvd2
-    NULL, // rsvd2
+    (void (*)(uint8_t))&nop, // rsvd2
+    (void (*)(uint8_t))&nop, // rsvd2
+    (void (*)(uint8_t))&nop, // rsvd2
+    (void (*)(uint8_t))&nop, // rsvd2
+    (void (*)(uint8_t))&nop, // rsvd2
+    (void (*)(uint8_t))&nop, // rsvd2
+    (void (*)(uint8_t))&nop, // rsvd2
     &int_flag, // int_flag
     (void (*)(uint8_t))&nop, // nr10
     (void (*)(uint8_t))&nop, // nr11
@@ -381,19 +392,19 @@ static void (*const io_handlers[256])(uint8_t value) =
     &stat, // stat
     (void (*)(uint8_t))&nop, // scy
     (void (*)(uint8_t))&nop, // scx
-    NULL, // ly
-    NULL, // lyc
+    (void (*)(uint8_t))&ly, // ly
+    (void (*)(uint8_t))&nop, // lyc
     &dma, // dma
     (void (*)(uint8_t))&nop, // bgp
     (void (*)(uint8_t))&nop, // obp0
     (void (*)(uint8_t))&nop, // obp1
     (void (*)(uint8_t))&nop, // wy
     (void (*)(uint8_t))&nop, // wx
-    NULL, // rsvd6
+    (void (*)(uint8_t))&nop, // rsvd6
     &key1, // key1
     (void (*)(uint8_t))&nop, // rsvd6
     &vbk, // vbk
-    NULL, // rsvd6
+    (void (*)(uint8_t))&nop, // rsvd6
     &hdma1, // hdma1
     &hdma2, // hdma2
     &hdma3, // hdma3
@@ -421,10 +432,10 @@ static void (*const io_handlers[256])(uint8_t value) =
     &bcpd, // bcpd
     &ocps, // ocps
     &ocpd, // ocpd
-    NULL, // rsvd6
-    NULL, // rsvd6
-    NULL, // rsvd6
-    NULL, // rsvd6
+    (void (*)(uint8_t))&nop, // rsvd6
+    (void (*)(uint8_t))&nop, // rsvd6
+    (void (*)(uint8_t))&nop, // rsvd6
+    (void (*)(uint8_t))&nop, // rsvd6
     &svbk, // svbk
     NULL, // rsvd6
     NULL, // rsvd6
