@@ -107,6 +107,9 @@ void os_handle_events(void)
                     case SDLK_SPACE:
                         save_to_disk();
                         break;
+                    case SDLK_LSHIFT:
+                        boost ^= 1;
+                        break;
                     default:
                         break;
                 }

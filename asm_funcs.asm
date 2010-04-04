@@ -61,11 +61,76 @@ public cp_a__hl
 public cp_s
 public ld_hl_spn
 public rlca
+public rlc_a
+public rlc_b
+public rlc_c
+public rlc_d
+public rlc_e
+public rlc_h
+public rlc_l
+public rlc__hl
 public rrca
+public rrc_a
+public rrc_b
+public rrc_c
+public rrc_d
+public rrc_e
+public rrc_h
+public rrc_l
+public rrc__hl
 public rla
+public rl_a
+public rl_b
+public rl_c
+public rl_d
+public rl_e
+public rl_h
+public rl_l
+public rl__hl
 public rra
+public rr_a
+public rr_b
+public rr_c
+public rr_d
+public rr_e
+public rr_h
+public rr_l
+public rr__hl
+public sla_a
+public sla_b
+public sla_c
+public sla_d
+public sla_e
+public sla_h
+public sla_l
+public sla__hl
+public sra_a
+public sra_b
+public sra_c
+public sra_d
+public sra_e
+public sra_h
+public sra_l
+public sra__hl
+public srl_a
+public srl_b
+public srl_c
+public srl_d
+public srl_e
+public srl_h
+public srl_l
+public srl__hl
+public swap_a
+public swap_b
+public swap_c
+public swap_d
+public swap_e
+public swap_h
+public swap_l
+public swap__hl
 
 extrn mem_readb
+extrn mem_writeb
 
 extrn _af
 extrn _bc
@@ -729,107 +794,31 @@ add   word [_ip],1
 ret
 
 
-sbc_a_b:
-xor   dl,dl
-mov   al,[b]
-clc
-test  byte [f],FLAG_CRY
-jz    sbc_a_b_ncb
-stc
-sbc_a_b_ncb:
-sbb   [a],al
-save_eflags
-check_zf sbc_a_b
-check_hf sbc_a_b
-check_cfs sbc_a_b
-write_flags
-ret
+macro _sbc_a reg
+{
+    sbc_a_#reg#:
+    xor   dl,dl
+    mov   al,[reg]
+    clc
+    test  byte [f],FLAG_CRY
+    jz    sbc_a_#reg#_ncb
+    stc
+    sbc_a_#reg#_ncb:
+    sbb   [a],al
+    save_eflags
+    check_zf sbc_a_#reg
+    check_hf sbc_a_#reg
+    check_cfs sbc_a_#reg
+    write_flags
+    ret
+}
 
-
-sbc_a_c:
-xor   dl,dl
-mov   al,[c]
-clc
-test  byte [f],FLAG_CRY
-jz    sbc_a_c_ncb
-stc
-sbc_a_c_ncb:
-sbb   [a],al
-save_eflags
-check_zf sbc_a_c
-check_hf sbc_a_c
-check_cfs sbc_a_c
-write_flags
-ret
-
-
-sbc_a_d:
-xor   dl,dl
-mov   al,[d]
-clc
-test  byte [f],FLAG_CRY
-jz    sbc_a_d_ncb
-stc
-sbc_a_d_ncb:
-sbb   [a],al
-save_eflags
-check_zf sbc_a_d
-check_hf sbc_a_d
-check_cfs sbc_a_d
-write_flags
-ret
-
-
-sbc_a_e:
-xor   dl,dl
-mov   al,[e]
-clc
-test  byte [f],FLAG_CRY
-jz    sbc_a_e_ncb
-stc
-sbc_a_e_ncb:
-sbb   [a],al
-save_eflags
-check_zf sbc_a_e
-check_hf sbc_a_e
-check_cfs sbc_a_e
-write_flags
-ret
-
-
-sbc_a_h:
-xor   dl,dl
-mov   al,[h]
-clc
-test  byte [f],FLAG_CRY
-jz    sbc_a_h_ncb
-stc
-sbc_a_h_ncb:
-sbb   [a],al
-save_eflags
-check_zf sbc_a_h
-check_hf sbc_a_h
-check_cfs sbc_a_h
-write_flags
-ret
-
-
-sbc_a_l:
-xor   dl,dl
-mov   al,[l]
-clc
-test  byte [f],FLAG_CRY
-jz    sbc_a_l_ncb
-stc
-sbc_a_l_ncb:
-sbb   [a],al
-save_eflags
-check_zf sbc_a_l
-check_hf sbc_a_l
-check_cfs sbc_a_l
-write_flags
-ret
-
+_sbc_a b
+_sbc_a c
+_sbc_a d
+_sbc_a e
+_sbc_a h
+_sbc_a l
 
 sbc_a__hl:
 xor   eax,eax
@@ -850,7 +839,6 @@ check_hf sbc_a__hl
 check_cfs sbc_a__hl
 write_flags
 ret
-
 
 sbc_a_s:
 xor   eax,eax
@@ -874,77 +862,26 @@ add   word [_ip],1
 ret
 
 
-cp_a_b:
-mov   dl,FLAG_SUB
-mov   al,[b]
-cmp   [a],al
-save_eflags
-check_zf cp_a_b
-check_hf cp_a_b
-check_cfs cp_a_b
-write_flags
-ret
+macro _cp_a reg
+{
+    cp_a_#reg#:
+    mov   dl,FLAG_SUB
+    mov   al,[reg]
+    cmp   [a],al
+    save_eflags
+    check_zf cp_a_#reg
+    check_hf cp_a_#reg
+    check_cfs cp_a_#reg
+    write_flags
+    ret
+}
 
-
-cp_a_c:
-mov   dl,FLAG_SUB
-mov   al,[c]
-cmp   [a],al
-save_eflags
-check_zf cp_a_c
-check_hf cp_a_c
-check_cfs cp_a_c
-write_flags
-ret
-
-
-cp_a_d:
-mov   dl,FLAG_SUB
-mov   al,[d]
-cmp   [a],al
-save_eflags
-check_zf cp_a_d
-check_hf cp_a_d
-check_cfs cp_a_d
-write_flags
-ret
-
-
-cp_a_e:
-mov   dl,FLAG_SUB
-mov   al,[e]
-cmp   [a],al
-save_eflags
-check_zf cp_a_e
-check_hf cp_a_e
-check_cfs cp_a_e
-write_flags
-ret
-
-
-cp_a_h:
-mov   dl,FLAG_SUB
-mov   al,[h]
-cmp   [a],al
-save_eflags
-check_zf cp_a_h
-check_hf cp_a_h
-check_cfs cp_a_h
-write_flags
-ret
-
-
-cp_a_l:
-mov   dl,FLAG_SUB
-mov   al,[l]
-cmp   [a],al
-save_eflags
-check_zf cp_a_l
-check_hf cp_a_l
-check_cfs cp_a_l
-write_flags
-ret
-
+_cp_a b
+_cp_a c
+_cp_a d
+_cp_a e
+_cp_a h
+_cp_a l
 
 cp_a__hl:
 xor   eax,eax
@@ -960,7 +897,6 @@ check_hf cp_a__hl
 check_cfs cp_a__hl
 write_flags
 ret
-
 
 cp_s:
 xor   eax,eax
@@ -998,49 +934,384 @@ add   word [_ip],1
 ret
 
 
+macro _rlc reg
+{
+    rlc_#reg#:
+    xor   dl,dl
+    mov   al,[reg]
+    rol   al,1
+    mov   [reg],al
+    check_cf rlc_#reg
+    test  al,al
+    check_zf rlc_#reg
+    write_flags
+    ret
+}
+
 rlca:
-xor   dl,dl
+load_flags
+and   dl,FLAG_ZERO
 mov   al,[a]
 rol   al,1
 mov   [a],al
 check_cf rlca
-test  al,al
-check_zf rlca
 write_flags
 ret
 
+_rlc a
+_rlc b
+_rlc c
+_rlc d
+_rlc e
+_rlc h
+_rlc l
+
+rlc__hl:
+xor   eax,eax
+push  eax
+mov   ax,[hl]
+push  eax
+call  mem_readb
+xor   dl,dl
+rol   al,1
+check_cf rlc__hl
+test  al,al
+check_zf rlc__hl
+write_flags
+mov   [esp+4],al
+call  mem_writeb
+add   esp,8
+ret
+
+
+macro _rrc reg
+{
+    rrc_#reg#:
+    xor   dl,dl
+    mov   al,[reg]
+    ror   al,1
+    mov   [reg],al
+    check_cf rrc_#reg
+    test  al,al
+    check_zf rrc_#reg
+    write_flags
+    ret
+}
 
 rrca:
-xor   dl,dl
+load_flags
+and   dl,FLAG_ZERO
 mov   al,[a]
 ror   al,1
 mov   [a],al
 check_cf rrca
-test  al,al
-check_zf rrca
 write_flags
 ret
 
+_rrc a
+_rrc b
+_rrc c
+_rrc d
+_rrc e
+_rrc h
+_rrc l
+
+rrc__hl:
+xor   eax,eax
+push  eax
+mov   ax,[hl]
+push  eax
+call  mem_readb
+xor   dl,dl
+ror   al,1
+check_cf rrc__hl
+test  al,al
+check_zf rrc__hl
+write_flags
+mov   [esp+4],al
+call  mem_writeb
+add   esp,8
+ret
+
+
+macro _rl reg
+{
+    rl_#reg#:
+    xor   dl,dl
+    mov   al,[reg]
+    clc
+    test  byte [f],FLAG_CRY
+    jz    rl_#reg#_ncb
+    stc
+    rl_#reg#_ncb:
+    rcl   al,1
+    mov   [reg],al
+    check_cf rl_#reg
+    test   al,al
+    check_zf rl_#reg
+    write_flags
+    ret
+}
 
 rla:
-xor   dl,dl
+load_flags
+and   dl,FLAG_ZERO
 mov   al,[a]
+clc
+test  byte [f],FLAG_CRY
+jz    rla_ncb
+stc
+rla_ncb:
 rcl   al,1
 mov   [a],al
 check_cf rla
-test  al,al
+test   al,al
 check_zf rla
 write_flags
 ret
 
+_rl a
+_rl b
+_rl c
+_rl d
+_rl e
+_rl h
+_rl l
+
+rl__hl:
+xor   eax,eax
+push  eax
+mov   ax,[hl]
+push  eax
+call  mem_readb
+xor   dl,dl
+clc
+test  byte [f],FLAG_CRY
+jz    rl__hl_ncb
+stc
+rl__hl_ncb:
+rcl   al,1
+check_cf rl__hl
+test  al,al
+check_zf rl__hl
+write_flags
+mov   [esp+4],al
+call  mem_writeb
+add   esp,8
+ret
+
+
+macro _rr reg
+{
+    rr_#reg#:
+    xor   dl,dl
+    mov   al,[reg]
+    clc
+    test  byte [f],FLAG_CRY
+    jz    rr_#reg#_ncb
+    stc
+    rr_#reg#_ncb:
+    rcr   al,1
+    mov   [reg],al
+    check_cf rr_#reg
+    test   al,al
+    check_zf rr_#reg
+    write_flags
+    ret
+}
 
 rra:
-xor   dl,dl
+load_flags
+and   dl,FLAG_ZERO
 mov   al,[a]
+clc
+test  byte [f],FLAG_CRY
+jz    rra_ncb
+stc
+rra_ncb:
 rcr   al,1
 mov   [a],al
 check_cf rra
-test  al,al
+test   al,al
 check_zf rra
 write_flags
+ret
+
+_rr a
+_rr b
+_rr c
+_rr d
+_rr e
+_rr h
+_rr l
+
+rr__hl:
+xor   eax,eax
+push  eax
+mov   ax,[hl]
+push  eax
+call  mem_readb
+xor   dl,dl
+clc
+test  byte [f],FLAG_CRY
+jz    rr__hl_ncb
+stc
+rr__hl_ncb:
+rcr   al,1
+check_cf rr__hl
+test  al,al
+check_zf rr__hl
+write_flags
+mov   [esp+4],al
+call  mem_writeb
+add   esp,8
+ret
+
+
+macro _sla reg
+{
+    sla_#reg#:
+    xor   dl,dl
+    sal   byte [reg],1
+    save_eflags
+    check_zf sla_#reg
+    check_cfs sla_#reg
+    write_flags
+    ret
+}
+
+_sla a
+_sla b
+_sla c
+_sla d
+_sla e
+_sla h
+_sla l
+
+sla__hl:
+xor   eax,eax
+push  eax
+mov   ax,[hl]
+push  eax
+call  mem_readb
+xor   dl,dl
+sal   al,1
+save_eflags
+check_zf sla__hl
+check_cfs sla__hl
+write_flags
+mov   [esp+4],al
+call  mem_writeb
+add   esp,8
+ret
+
+
+macro _sra reg
+{
+    sra_#reg#:
+    xor   dl,dl
+    sar   byte [reg],1
+    save_eflags
+    check_zf sra_#reg
+    check_cfs sra_#reg
+    write_flags
+    ret
+}
+
+_sra a
+_sra b
+_sra c
+_sra d
+_sra e
+_sra h
+_sra l
+
+sra__hl:
+xor   eax,eax
+push  eax
+mov   ax,[hl]
+push  eax
+call  mem_readb
+xor   dl,dl
+sar   al,1
+save_eflags
+check_zf sra__hl
+check_cfs sra__hl
+write_flags
+mov   [esp+4],al
+call  mem_writeb
+add   esp,8
+ret
+
+
+macro _srl reg
+{
+    srl_#reg#:
+    xor   dl,dl
+    shr   byte [reg],1
+    save_eflags
+    check_zf srl_#reg
+    check_cfs srl_#reg
+    write_flags
+    ret
+}
+
+_srl a
+_srl b
+_srl c
+_srl d
+_srl e
+_srl h
+_srl l
+
+srl__hl:
+xor   eax,eax
+push  eax
+mov   ax,[hl]
+push  eax
+call  mem_readb
+xor   dl,dl
+shr   al,1
+save_eflags
+check_zf srl__hl
+check_cfs srl__hl
+write_flags
+mov   [esp+4],al
+call  mem_writeb
+add   esp,8
+ret
+
+
+macro _swap reg
+{
+    swap_#reg#:
+    xor   dl,dl
+    rol   byte [reg],4
+    test  al,al
+    check_zf swap_#reg
+    write_flags
+    ret
+}
+
+_swap a
+_swap b
+_swap c
+_swap d
+_swap e
+_swap h
+_swap l
+
+swap__hl:
+xor   eax,eax
+push  eax
+mov   ax,[hl]
+push  eax
+call  mem_readb
+xor   dl,dl
+ror   al,4
+check_zf swap__hl
+write_flags
+mov   [esp+4],al
+call  mem_writeb
+add   esp,8
 ret

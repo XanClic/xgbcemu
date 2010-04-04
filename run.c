@@ -8,8 +8,6 @@
 
 // #define HALT_ON_RST
 
-#define USE_EXT_ASM
-
 #define X86_ZF (1 << 6)
 #define X86_CF (1 << 0)
 #define X86_AF (1 << 4)
@@ -113,10 +111,11 @@ static void rlca(void)
     #ifdef DUMP
     os_print("RLCA: A == 0x%02X\n", (unsigned)a);
     #endif
-    f = (a & 0x80) ? FLAG_CRY : 0;
+
+    f &= FLAG_ZERO;
+    if (a & 0x80)
+        f |= FLAG_CRY;
     __asm__ __volatile__ ("rol al,1" : "=a"(a) : "a"(a));
-    if (!a)
-        f |= FLAG_ZERO;
 }
 #endif
 
@@ -217,10 +216,11 @@ static void rrca(void)
     #ifdef DUMP
     os_print("RRCA: A == 0x%02X\n", (unsigned)a);
     #endif
-    f = (a & 0x01) ? FLAG_CRY : 0;
+
+    f &= FLAG_ZERO;
+    if (a & 0x01)
+        f |= FLAG_CRY;
     __asm__ __volatile__ ("ror al,1" : "=a"(a) : "a"(a));
-    if (!a)
-        f |= FLAG_ZERO;
 }
 #endif
 
@@ -321,10 +321,10 @@ static void rla(void)
     os_print("RLA: A == 0x%02X\n", (unsigned)a);
     #endif
 
-    f = (a & 0x80) ? FLAG_CRY : 0;
+    f &= FLAG_ZERO;
+    if (a & 0x80)
+        f |= FLAG_CRY;
     a = ((a << 1) & 0xFF) | !!cry;
-    if (!a)
-        f |= FLAG_ZERO;
 }
 #endif
 
@@ -428,10 +428,10 @@ static void rra(void)
     os_print("RRA: A == 0x%02X\n", (unsigned)a);
     #endif
 
-    f = (a & 0x01) ? FLAG_CRY : 0;
+    f &= FLAG_ZERO;
+    if (a & 0x01)
+        f |= FLAG_CRY;
     a = (a >> 1) | (!!cry << 7);
-    if (!a)
-        f |= FLAG_ZERO;
 }
 #endif
 
@@ -3753,13 +3753,16 @@ void run(void)
         diff = new_tsc - last_tsc;
         last_tsc = new_tsc;
 
-        too_short = cyc - 1000LL * (uint64_t)diff / (uint64_t)tsc_resolution;
-        collect_sleep_time += too_short;
-
-        if (collect_sleep_time >= 10000)
+        if (!boost)
         {
-            sleep_ms(collect_sleep_time);
-            collect_sleep_time = 0;
+            too_short = cyc - 1000LL * (uint64_t)diff / (uint64_t)tsc_resolution;
+            collect_sleep_time += too_short;
+
+            if (collect_sleep_time >= 10000)
+            {
+                sleep_ms(collect_sleep_time);
+                collect_sleep_time = 0;
+            }
         }
         #endif
     }
