@@ -130,14 +130,14 @@ void mbc3_load(void)
     os_file_setpos(save, 0);
     for (int i = 0; i < ram_size; i++)
     {
-        ram_banks[i] = alloc_mem(8192);
+        ram_banks[i] = alloc_cmem(8192);
         os_file_read(save, 8192, ram_banks[i]);
     }
     ext_ram_ptr = ram_banks[0];
 
     for (int i = 0; i < rom_size; i++)
     {
-        rom_banks[i] = alloc_mem(16384);
+        rom_banks[i] = alloc_cmem(16384);
         os_file_read(fp, 16384, rom_banks[i]);
     }
     base_rom_ptr = rom_banks[0];

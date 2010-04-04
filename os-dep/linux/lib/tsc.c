@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 #include "gbc.h"
@@ -7,6 +8,7 @@
 
 uint32_t determine_tsc_resolution(void)
 {
+    /*
     uint32_t resolutions[10];
 
     for (int i = 0; i < 10; i++)
@@ -47,4 +49,27 @@ uint32_t determine_tsc_resolution(void)
     printf("Total resolution: %i; removed %i and %i\n", (int)sum, min, max);
 
     return sum;
+    */
+
+    FILE *cpuinfo = fopen("/proc/cpuinfo", "r");
+    if (cpuinfo == NULL)
+    {
+        perror("Could not open /proc/cpuinfo");
+        exit(1);
+    }
+
+    char line[80];
+    do
+        fgets(line, 79, cpuinfo);
+    while (!feof(cpuinfo) && strncmp(line, "cpu MHz", 7));
+
+    if (feof(cpuinfo))
+    {
+        fprintf(stderr, "/proc/cpuinfo doesn't contain a line beginning with \"cpu MHz\".\n");
+        exit(1);
+    }
+
+    fclose(cpuinfo);
+
+    return atof(strchr(line, ':') + 2) * 2000;
 }

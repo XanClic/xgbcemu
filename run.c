@@ -8,6 +8,8 @@
 
 // #define HALT_ON_RST
 
+#define USE_EXT_ASM
+
 #define X86_ZF (1 << 6)
 #define X86_CF (1 << 0)
 #define X86_AF (1 << 4)
@@ -22,6 +24,7 @@ static uint32_t diff;
 extern void (*const handle0xCB[64])(void);
 extern const int cycles[256];
 extern const int cycles0xCB[256];
+extern const uint16_t daa_table[1024];
 
 static void call(void);
 static void jp(void);
@@ -60,6 +63,9 @@ static void inc_bc(void)
     bc++;
 }
 
+#ifdef USE_EXT_ASM
+void inc_b(void);
+#else
 static void inc_b(void)
 {
     #ifdef DUMP
@@ -72,7 +78,11 @@ static void inc_b(void)
     if (!(b & 0xF))
         f |= FLAG_HCRY;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void dec_b(void);
+#else
 static void dec_b(void)
 {
     #ifdef DUMP
@@ -85,6 +95,7 @@ static void dec_b(void)
     if (!--b)
         f |= FLAG_ZERO;
 }
+#endif
 
 static void ld_b_n(void)
 {
@@ -94,6 +105,9 @@ static void ld_b_n(void)
     b = mem_readb(ip++);
 }
 
+#ifdef USE_EXT_ASM
+void rlca(void);
+#else
 static void rlca(void)
 {
     #ifdef DUMP
@@ -104,6 +118,7 @@ static void rlca(void)
     if (!a)
         f |= FLAG_ZERO;
 }
+#endif
 
 static void ld__nn_sp(void)
 {
@@ -114,6 +129,9 @@ static void ld__nn_sp(void)
     ip += 2;
 }
 
+#ifdef USE_EXT_ASM
+void add_hl_bc(void);
+#else
 static void add_hl_bc(void)
 {
     int result = hl + bc;
@@ -131,6 +149,7 @@ static void add_hl_bc(void)
 
     hl = result;
 }
+#endif
 
 static void ld_a__bc(void)
 {
@@ -148,6 +167,9 @@ static void dec_bc(void)
     bc--;
 }
 
+#ifdef USE_EXT_ASM
+void inc_c(void);
+#else
 static void inc_c(void)
 {
     #ifdef DUMP
@@ -160,7 +182,11 @@ static void inc_c(void)
     if (!(c & 0xF))
         f |= FLAG_HCRY;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void dec_c(void);
+#else
 static void dec_c(void)
 {
     #ifdef DUMP
@@ -173,6 +199,7 @@ static void dec_c(void)
     if (!--c)
         f |= FLAG_ZERO;
 }
+#endif
 
 static void ld_c_n(void)
 {
@@ -182,6 +209,9 @@ static void ld_c_n(void)
     c = mem_readb(ip++);
 }
 
+#ifdef USE_EXT_ASM
+void rrca(void);
+#else
 static void rrca(void)
 {
     #ifdef DUMP
@@ -192,6 +222,7 @@ static void rrca(void)
     if (!a)
         f |= FLAG_ZERO;
 }
+#endif
 
 static void prefix0x10(void)
 {
@@ -237,6 +268,9 @@ static void inc_de(void)
     de++;
 }
 
+#ifdef USE_EXT_ASM
+void inc_d(void);
+#else
 static void inc_d(void)
 {
     #ifdef DUMP
@@ -249,7 +283,11 @@ static void inc_d(void)
     if (!(d & 0xF))
         f |= FLAG_HCRY;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void dec_d(void);
+#else
 static void dec_d(void)
 {
     #ifdef DUMP
@@ -262,6 +300,7 @@ static void dec_d(void)
     if (!--d)
         f |= FLAG_ZERO;
 }
+#endif
 
 static void ld_d_n(void)
 {
@@ -271,6 +310,9 @@ static void ld_d_n(void)
     d = mem_readb(ip++);
 }
 
+#ifdef USE_EXT_ASM
+void rla(void);
+#else
 static void rla(void)
 {
     int cry = f & FLAG_CRY;
@@ -284,6 +326,7 @@ static void rla(void)
     if (!a)
         f |= FLAG_ZERO;
 }
+#endif
 
 static void jr(void)
 {
@@ -294,6 +337,9 @@ static void jr(void)
     ip += (int)(signed char)mem_readb(ip) + 1;
 }
 
+#ifdef USE_EXT_ASM
+void add_hl_de(void);
+#else
 static void add_hl_de(void)
 {
     int result = hl + de;
@@ -306,11 +352,12 @@ static void add_hl_de(void)
     if (result & ~0xFFFF)
         f |= FLAG_CRY;
     result &= 0xFFFF;
-    if ((hl & 0xFFF) + (bc & 0xFFF) > 0xFFF)
+    if ((hl & 0xFFF) + (de & 0xFFF) > 0xFFF)
         f |= FLAG_HCRY;
 
     hl = result;
 }
+#endif
 
 static void ld_a__de(void)
 {
@@ -328,6 +375,9 @@ static void dec_de(void)
     de--;
 }
 
+#ifdef USE_EXT_ASM
+void inc_e(void);
+#else
 static void inc_e(void)
 {
     #ifdef DUMP
@@ -340,7 +390,11 @@ static void inc_e(void)
     if (!(e & 0xF))
         f |= FLAG_HCRY;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void dec_e(void);
+#else
 static void dec_e(void)
 {
     #ifdef DUMP
@@ -353,6 +407,7 @@ static void dec_e(void)
     if (!--e)
         f |= FLAG_ZERO;
 }
+#endif
 
 static void ld_e_n(void)
 {
@@ -362,6 +417,9 @@ static void ld_e_n(void)
     e = mem_readb(ip++);
 }
 
+#ifdef USE_EXT_ASM
+void rra(void);
+#else
 static void rra(void)
 {
     int cry = f & FLAG_CRY;
@@ -375,6 +433,7 @@ static void rra(void)
     if (!a)
         f |= FLAG_ZERO;
 }
+#endif
 
 static void jrnz(void)
 {
@@ -419,6 +478,9 @@ static void inc_hl(void)
     hl++;
 }
 
+#ifdef USE_EXT_ASM
+void inc_h(void);
+#else
 static void inc_h(void)
 {
     #ifdef DUMP
@@ -431,7 +493,11 @@ static void inc_h(void)
     if (!(h & 0xF))
         f |= FLAG_HCRY;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void dec_h(void);
+#else
 static void dec_h(void)
 {
     #ifdef DUMP
@@ -444,6 +510,7 @@ static void dec_h(void)
     if (!--h)
         f |= FLAG_ZERO;
 }
+#endif
 
 static void ld_h_n(void)
 {
@@ -455,43 +522,14 @@ static void ld_h_n(void)
 
 static void daa(void)
 {
-    int old_f = f;
-    uint16_t new_a = a;
-
+    int index = a | ((f & 0x70) << 4);
     #ifdef DUMP
     os_print("DAA: A == 0x%02X; F == 0x%02X\n", (unsigned)a, (unsigned)f);
     #endif
 
     f &= FLAG_SUB;
-
-    if (old_f & FLAG_SUB)
-    {
-        if (((a & 0x0F) > 0x09) || (old_f & FLAG_HCRY))
-            new_a -= 0x06;
-        if ((a > 0x99) || (old_f & FLAG_CRY))
-        {
-            new_a -= 0x60;
-            f |= FLAG_CRY;
-        }
-    }
-    else
-    {
-        if (((a & 0x0F) > 0x09) || (old_f & FLAG_HCRY))
-            new_a += 0x06;
-        if ((a > 0x99) || (old_f & FLAG_CRY))
-        {
-            new_a += 0x60;
-            f |= FLAG_CRY;
-        }
-        else
-            f &= ~FLAG_CRY;
-    }
-
-    a = new_a & 0xFF;
-    if (!a)
-        f |= FLAG_ZERO;
-    if ((new_a & 0xFF00) || (old_f & FLAG_CRY))
-        f |= FLAG_CRY;
+    a = 0;
+    af |= daa_table[index];
 }
 
 static void jrz(void)
@@ -543,6 +581,9 @@ static void dec_hl(void)
     hl--;
 }
 
+#ifdef USE_EXT_ASM
+void inc_l(void);
+#else
 static void inc_l(void)
 {
     #ifdef DUMP
@@ -555,7 +596,11 @@ static void inc_l(void)
     if (!(l & 0xF))
         f |= FLAG_HCRY;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void dec_l(void);
+#else
 static void dec_l(void)
 {
     #ifdef DUMP
@@ -568,6 +613,7 @@ static void dec_l(void)
     if (!--l)
         f |= FLAG_ZERO;
 }
+#endif
 
 static void ld_l_n(void)
 {
@@ -582,7 +628,7 @@ static void cpl_a(void)
     #ifdef DUMP
     os_print("CPL A: A == 0x%02X\n", (unsigned)a);
     #endif
-    a = ~a & 0xFF;
+    a ^= 0xFF;
     f = FLAG_SUB | FLAG_HCRY;
 }
 
@@ -698,6 +744,9 @@ static void jrc(void)
     }
 }
 
+#ifdef USE_EXT_ASM
+void add_hl_sp(void);
+#else
 static void add_hl_sp(void)
 {
     int result = hl + sp;
@@ -710,11 +759,12 @@ static void add_hl_sp(void)
     if (result & ~0xFFFF)
         f |= FLAG_CRY;
     result &= 0xFFFF;
-    if ((hl & 0xFFF) + (bc & 0xFFF) > 0xFFF)
+    if ((hl & 0xFFF) + (sp & 0xFFF) > 0xFFF)
         f |= FLAG_HCRY;
 
     hl = result;
 }
+#endif
 
 static void ldd_a__hl(void)
 {
@@ -732,6 +782,9 @@ static void dec_sp(void)
     sp--;
 }
 
+#ifdef USE_EXT_ASM
+void inc_a(void);
+#else
 static void inc_a(void)
 {
     #ifdef DUMP
@@ -744,7 +797,11 @@ static void inc_a(void)
     if (!(a & 0xF))
         f |= FLAG_HCRY;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void dec_a(void);
+#else
 static void dec_a(void)
 {
     #ifdef DUMP
@@ -757,6 +814,7 @@ static void dec_a(void)
     if (!--a)
         f |= FLAG_ZERO;
 }
+#endif
 
 static void ld_a_s(void)
 {
@@ -1284,6 +1342,9 @@ static void ld_a_a(void)
     #endif
 }
 
+#ifdef USE_EXT_ASM
+void add_a_b(void);
+#else
 static void add_a_b(void)
 {
     uint32_t eflags;
@@ -1301,7 +1362,11 @@ static void add_a_b(void)
     if (eflags & X86_ZF)
         f |= FLAG_ZERO;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void add_a_c(void);
+#else
 static void add_a_c(void)
 {
     uint32_t eflags;
@@ -1319,7 +1384,11 @@ static void add_a_c(void)
     if (eflags & X86_ZF)
         f |= FLAG_ZERO;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void add_a_d(void);
+#else
 static void add_a_d(void)
 {
     uint32_t eflags;
@@ -1337,7 +1406,11 @@ static void add_a_d(void)
     if (eflags & X86_ZF)
         f |= FLAG_ZERO;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void add_a_e(void);
+#else
 static void add_a_e(void)
 {
     uint32_t eflags;
@@ -1355,7 +1428,11 @@ static void add_a_e(void)
     if (eflags & X86_ZF)
         f |= FLAG_ZERO;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void add_a_h(void);
+#else
 static void add_a_h(void)
 {
     uint32_t eflags;
@@ -1373,7 +1450,11 @@ static void add_a_h(void)
     if (eflags & X86_ZF)
         f |= FLAG_ZERO;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void add_a_l(void);
+#else
 static void add_a_l(void)
 {
     uint32_t eflags;
@@ -1391,6 +1472,7 @@ static void add_a_l(void)
     if (eflags & X86_ZF)
         f |= FLAG_ZERO;
 }
+#endif
 
 static void add_a__hl(void)
 {
@@ -1412,22 +1494,30 @@ static void add_a__hl(void)
 
 static void add_a_a(void)
 {
-    uint32_t eflags;
-
     #ifdef DUMP
     os_print("ADD A, A: A == 0x%02X\n", (unsigned)a);
     #endif
-    __asm__ __volatile__ ("add al,al; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a));
 
-    f = 0;
-    if (eflags & X86_CF)
-        f |= FLAG_CRY;
-    if (eflags & X86_AF)
-        f |= FLAG_HCRY;
-    if (eflags & X86_ZF)
-        f |= FLAG_ZERO;
+    if (!a)
+        f = FLAG_ZERO;
+    else
+    {
+        if (a & 0x80)
+            f = FLAG_CRY;
+        else
+            f = 0;
+        if (a & 0x08)
+            f |= FLAG_HCRY;
+        else
+            f |= FLAG_HCRY;
+
+        a <<= 1;
+    }
 }
 
+#ifdef USE_EXT_ASM
+void adc_a_b(void);
+#else
 static void adc_a_b(void)
 {
     uint32_t eflags;
@@ -1448,7 +1538,11 @@ static void adc_a_b(void)
     if (eflags & X86_ZF)
         f |= FLAG_ZERO;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void adc_a_c(void);
+#else
 static void adc_a_c(void)
 {
     uint32_t eflags;
@@ -1469,7 +1563,11 @@ static void adc_a_c(void)
     if (eflags & X86_ZF)
         f |= FLAG_ZERO;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void adc_a_d(void);
+#else
 static void adc_a_d(void)
 {
     uint32_t eflags;
@@ -1490,7 +1588,11 @@ static void adc_a_d(void)
     if (eflags & X86_ZF)
         f |= FLAG_ZERO;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void adc_a_e(void);
+#else
 static void adc_a_e(void)
 {
     uint32_t eflags;
@@ -1511,7 +1613,11 @@ static void adc_a_e(void)
     if (eflags & X86_ZF)
         f |= FLAG_ZERO;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void adc_a_h(void);
+#else
 static void adc_a_h(void)
 {
     uint32_t eflags;
@@ -1532,7 +1638,11 @@ static void adc_a_h(void)
     if (eflags & X86_ZF)
         f |= FLAG_ZERO;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void adc_a_l(void);
+#else
 static void adc_a_l(void)
 {
     uint32_t eflags;
@@ -1553,6 +1663,7 @@ static void adc_a_l(void)
     if (eflags & X86_ZF)
         f |= FLAG_ZERO;
 }
+#endif
 
 static void adc_a__hl(void)
 {
@@ -1575,6 +1686,9 @@ static void adc_a__hl(void)
         f |= FLAG_ZERO;
 }
 
+#ifdef USE_EXT_ASM
+void adc_a_a(void);
+#else
 static void adc_a_a(void)
 {
     uint32_t eflags;
@@ -1595,7 +1709,11 @@ static void adc_a_a(void)
     if (eflags & X86_ZF)
         f |= FLAG_ZERO;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void sub_a_b(void);
+#else
 static void sub_a_b(void)
 {
     uint32_t eflags;
@@ -1613,7 +1731,11 @@ static void sub_a_b(void)
     if (eflags & X86_AF)
         f |= FLAG_HCRY;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void sub_a_c(void);
+#else
 static void sub_a_c(void)
 {
     uint32_t eflags;
@@ -1631,7 +1753,11 @@ static void sub_a_c(void)
     if (eflags & X86_AF)
         f |= FLAG_HCRY;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void sub_a_d(void);
+#else
 static void sub_a_d(void)
 {
     uint32_t eflags;
@@ -1649,7 +1775,11 @@ static void sub_a_d(void)
     if (eflags & X86_AF)
         f |= FLAG_HCRY;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void sub_a_e(void);
+#else
 static void sub_a_e(void)
 {
     uint32_t eflags;
@@ -1667,7 +1797,11 @@ static void sub_a_e(void)
     if (eflags & X86_AF)
         f |= FLAG_HCRY;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void sub_a_h(void);
+#else
 static void sub_a_h(void)
 {
     uint32_t eflags;
@@ -1685,7 +1819,11 @@ static void sub_a_h(void)
     if (eflags & X86_AF)
         f |= FLAG_HCRY;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void sub_a_l(void);
+#else
 static void sub_a_l(void)
 {
     uint32_t eflags;
@@ -1703,7 +1841,11 @@ static void sub_a_l(void)
     if (eflags & X86_AF)
         f |= FLAG_HCRY;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void sub_a__hl(void);
+#else
 static void sub_a__hl(void)
 {
     uint32_t eflags;
@@ -1721,6 +1863,7 @@ static void sub_a__hl(void)
     if (eflags & X86_AF)
         f |= FLAG_HCRY;
 }
+#endif
 
 static void sub_a_a(void)
 {
@@ -1732,6 +1875,9 @@ static void sub_a_a(void)
     f = FLAG_SUB | FLAG_ZERO;
 }
 
+#ifdef USE_EXT_ASM
+void sbc_a_b(void);
+#else
 static void sbc_a_b(void)
 {
     uint32_t eflags;
@@ -1752,7 +1898,11 @@ static void sbc_a_b(void)
     if (eflags & X86_AF)
         f |= FLAG_HCRY;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void sbc_a_c(void);
+#else
 static void sbc_a_c(void)
 {
     uint32_t eflags;
@@ -1773,7 +1923,11 @@ static void sbc_a_c(void)
     if (eflags & X86_AF)
         f |= FLAG_HCRY;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void sbc_a_d(void);
+#else
 static void sbc_a_d(void)
 {
     uint32_t eflags;
@@ -1794,7 +1948,11 @@ static void sbc_a_d(void)
     if (eflags & X86_AF)
         f |= FLAG_HCRY;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void sbc_a_e(void);
+#else
 static void sbc_a_e(void)
 {
     uint32_t eflags;
@@ -1815,7 +1973,11 @@ static void sbc_a_e(void)
     if (eflags & X86_AF)
         f |= FLAG_HCRY;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void sbc_a_h(void);
+#else
 static void sbc_a_h(void)
 {
     uint32_t eflags;
@@ -1836,7 +1998,11 @@ static void sbc_a_h(void)
     if (eflags & X86_AF)
         f |= FLAG_HCRY;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void sbc_a_l(void);
+#else
 static void sbc_a_l(void)
 {
     uint32_t eflags;
@@ -1857,7 +2023,11 @@ static void sbc_a_l(void)
     if (eflags & X86_AF)
         f |= FLAG_HCRY;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void sbc_a__hl(void);
+#else
 static void sbc_a__hl(void)
 {
     uint32_t eflags;
@@ -1878,6 +2048,7 @@ static void sbc_a__hl(void)
     if (eflags & X86_AF)
         f |= FLAG_HCRY;
 }
+#endif
 
 static void sbc_a_a(void)
 {
@@ -2159,6 +2330,9 @@ static void or_a_a(void)
     f = a ? 0 : FLAG_ZERO;
 }
 
+#ifdef USE_EXT_ASM
+void cp_a_b(void);
+#else
 static void cp_a_b(void)
 {
     uint32_t eflags;
@@ -2176,7 +2350,11 @@ static void cp_a_b(void)
     if (eflags & X86_AF)
         f |= FLAG_HCRY;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void cp_a_c(void);
+#else
 static void cp_a_c(void)
 {
     uint32_t eflags;
@@ -2194,7 +2372,11 @@ static void cp_a_c(void)
     if (eflags & X86_AF)
         f |= FLAG_HCRY;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void cp_a_d(void);
+#else
 static void cp_a_d(void)
 {
     uint32_t eflags;
@@ -2212,7 +2394,11 @@ static void cp_a_d(void)
     if (eflags & X86_AF)
         f |= FLAG_HCRY;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void cp_a_e(void);
+#else
 static void cp_a_e(void)
 {
     uint32_t eflags;
@@ -2230,7 +2416,11 @@ static void cp_a_e(void)
     if (eflags & X86_AF)
         f |= FLAG_HCRY;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void cp_a_h(void);
+#else
 static void cp_a_h(void)
 {
     uint32_t eflags;
@@ -2248,7 +2438,11 @@ static void cp_a_h(void)
     if (eflags & X86_AF)
         f |= FLAG_HCRY;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void cp_a_l(void);
+#else
 static void cp_a_l(void)
 {
     uint32_t eflags;
@@ -2266,7 +2460,11 @@ static void cp_a_l(void)
     if (eflags & X86_AF)
         f |= FLAG_HCRY;
 }
+#endif
 
+#ifdef USE_EXT_ASM
+void cp_a__hl(void);
+#else
 static void cp_a__hl(void)
 {
     uint32_t eflags;
@@ -2284,6 +2482,7 @@ static void cp_a__hl(void)
     if (eflags & X86_AF)
         f |= FLAG_HCRY;
 }
+#endif
 
 static void cp_a_a(void)
 {
@@ -2371,6 +2570,9 @@ static void push_bc(void)
     push(bc);
 }
 
+#ifdef USE_EXT_ASM
+void add_a_s(void);
+#else
 static void add_a_s(void)
 {
     uint32_t eflags;
@@ -2388,6 +2590,7 @@ static void add_a_s(void)
     if (eflags & X86_ZF)
         f |= FLAG_ZERO;
 }
+#endif
 
 static void rst0x00(void)
 {
@@ -2662,6 +2865,9 @@ static void call(void)
     ip = nn;
 }
 
+#ifdef USE_EXT_ASM
+void adc_a_s(void);
+#else
 static void adc_a_s(void)
 {
     uint32_t eflags;
@@ -2682,6 +2888,7 @@ static void adc_a_s(void)
     if (eflags & X86_ZF)
         f |= FLAG_ZERO;
 }
+#endif
 
 static void rst0x08(void)
 {
@@ -2765,6 +2972,9 @@ static void push_de(void)
     push(de);
 }
 
+#ifdef USE_EXT_ASM
+void sub_a_s(void);
+#else
 static void sub_a_s(void)
 {
     uint32_t eflags;
@@ -2782,6 +2992,7 @@ static void sub_a_s(void)
     if (eflags & X86_AF)
         f |= FLAG_HCRY;
 }
+#endif
 
 static void ret0x10(void)
 {
@@ -2860,6 +3071,9 @@ static void callc(void)
     }
 }
 
+#ifdef USE_EXT_ASM
+void sbc_a_s(void);
+#else
 static void sbc_a_s(void)
 {
     uint32_t eflags;
@@ -2880,6 +3094,7 @@ static void sbc_a_s(void)
     if (eflags & X86_AF)
         f |= FLAG_HCRY;
 }
+#endif
 
 static void rst0x18(void)
 {
@@ -2952,6 +3167,9 @@ static void rst0x20(void)
     ip = 0x0020;
 }
 
+#ifdef USE_EXT_ASM
+void add_sp_s(void);
+#else
 static void add_sp_s(void)
 {
     int add = (int)(signed char)mem_readb(ip++);
@@ -2970,6 +3188,7 @@ static void add_sp_s(void)
 
     sp = result;
 }
+#endif
 
 static void jp__hl(void)
 {
@@ -3074,25 +3293,29 @@ static void rst0x30(void)
     ip = 0x0030;
 }
 
+#ifdef USE_EXT_ASM
+void ld_hl_spn(void);
+#else
 static void ld_hl_spn(void)
 {
-    int result;
+    int result, val = (int)(signed char)mem_readb(ip++);
 
     #ifdef DUMP
-    os_print("LD HL, SP + %i: HL == 0x%04X; SP == 0x%04X\n", (int)(signed char)mem_readb(ip), (unsigned)hl, (unsigned)sp);
+    os_print("LD HL, SP + %i: HL == 0x%04X; SP == 0x%04X\n", val, (unsigned)hl, (unsigned)sp);
     #endif
 
-    result = sp + (int)(signed char)mem_readb(ip++);
+    result = sp + val;
 
     f = 0;
     if (result & ~0xFFFF)
         f |= FLAG_CRY;
     result &= 0xFFFF;
-    if ((hl & 0xFFF) + (bc & 0xFFF) > 0xFFF)
+    if ((sp & 0xFFF) + ((unsigned)val & 0xFFF) > 0xFFF)
         f |= FLAG_HCRY;
 
     hl = result;
 }
+#endif
 
 static void ld_sp_hl(void)
 {
@@ -3119,6 +3342,9 @@ static void ei_(void)
     want_ints_to_be = 1;
 }
 
+#ifdef USE_EXT_ASM
+void cp_s(void);
+#else
 static void cp_s(void)
 {
     uint32_t eflags;
@@ -3136,6 +3362,7 @@ static void cp_s(void)
     if (eflags & X86_AF)
         f |= FLAG_HCRY;
 }
+#endif
 
 static void rst0x38(void)
 {
@@ -3494,7 +3721,7 @@ void run(void)
         }
 
         #ifdef DUMP_REGS
-        os_print("IP=%04x AF=%04x BC=%04x DE=%04x HL=%04x SP=%04x I=%04x\n", (unsigned)ip, (unsigned)af, (unsigned)bc, (unsigned)de, (unsigned)hl, (unsigned)sp, (unsigned)io_regs->int_flag);
+        os_print("PC=%04x AF=%04x BC=%04x DE=%04x HL=%04x SP=%04x\n", (unsigned)ip, (unsigned)af, (unsigned)bc, (unsigned)de, (unsigned)hl, (unsigned)sp);
         #endif
 
         #ifdef DUMP
