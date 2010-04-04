@@ -19,42 +19,42 @@ void generate_interrupts(void)
     if (cause & INT_P10_P13) // Hi-Lo of P10-P13
     {
         #ifdef DUMP
-        printf("Issuing P10/P13 hi-lo\n");
+        os_print("Issuing P10/P13 hi-lo\n");
         #endif
         cause = 1 << 4;
     }
     else if (cause & INT_SERIAL) // Serial transfer completed
     {
         #ifdef DUMP
-        printf("Issuing serial\n");
+        os_print("Issuing serial\n");
         #endif
         cause = 1 << 3;
     }
     else if (cause & INT_TIMER) // Timer overflow
     {
         #ifdef DUMP
-        printf("Issuing timer\n");
+        os_print("Issuing timer\n");
         #endif
         cause = 1 << 2;
     }
     else if (cause & INT_LCDC_STAT) // LCDC STAT
     {
         #ifdef DUMP
-        printf("Issuing LCDC\n");
+        os_print("Issuing LCDC\n");
         #endif
         cause = 1 << 1;
     }
     else if (cause & INT_VBLANK) // V Blank
     {
         #ifdef DUMP
-        printf("Issuing VBlank\n");
+        os_print("Issuing VBlank\n");
         #endif
         cause = 1 << 0;
     }
     else
     {
         #ifdef DUMP
-        printf("Unknown interrupt cause 0x%02X\n", cause);
+        os_print("Unknown interrupt cause 0x%02X\n", cause);
         #endif
         return;
     }

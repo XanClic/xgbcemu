@@ -1,7 +1,4 @@
 #include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
 
 #include "gbc.h"
 
@@ -10,8 +7,6 @@
 // #define DUMP_REGS
 
 // #define HALT_ON_RST
-
-#define TRUE_TIMING
 
 #define X86_ZF (1 << 6)
 #define X86_CF (1 << 0)
@@ -33,24 +28,17 @@ static void jp(void);
 static void jr(void);
 static void ret(void);
 
-static inline uint64_t rdtsc(void)
-{
-    uint32_t lo, hi;
-    __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
-    return (uint64_t)lo | ((uint64_t)hi << 32);
-}
-
 static void nop(void)
 {
     #ifdef DUMP
-    printf("NOP\n");
+    os_print("NOP\n");
     #endif
 }
 
 static void ld_bc_nn(void)
 {
     #ifdef DUMP
-    printf("LD BC, 0x%04X: BC == 0x%04X\n", (unsigned)nn, (unsigned)bc);
+    os_print("LD BC, 0x%04X: BC == 0x%04X\n", (unsigned)nn, (unsigned)bc);
     #endif
     bc = nn;
     ip += 2;
@@ -59,7 +47,7 @@ static void ld_bc_nn(void)
 static void ld__bc_a(void)
 {
     #ifdef DUMP
-    printf("LD (BC), A: BC == 0x%04X; A == 0x%02X\n", (unsigned)bc, (unsigned)a);
+    os_print("LD (BC), A: BC == 0x%04X; A == 0x%02X\n", (unsigned)bc, (unsigned)a);
     #endif
     mem_writeb(bc, a);
 }
@@ -67,7 +55,7 @@ static void ld__bc_a(void)
 static void inc_bc(void)
 {
     #ifdef DUMP
-    printf("INC BC: BC == 0x%04X\n", (unsigned)bc);
+    os_print("INC BC: BC == 0x%04X\n", (unsigned)bc);
     #endif
     bc++;
 }
@@ -75,7 +63,7 @@ static void inc_bc(void)
 static void inc_b(void)
 {
     #ifdef DUMP
-    printf("INC B: B == 0x%02X\n", (unsigned)b);
+    os_print("INC B: B == 0x%02X\n", (unsigned)b);
     #endif
 
     f &= FLAG_CRY;
@@ -88,7 +76,7 @@ static void inc_b(void)
 static void dec_b(void)
 {
     #ifdef DUMP
-    printf("DEC B: B == 0x%02X\n", (unsigned)b);
+    os_print("DEC B: B == 0x%02X\n", (unsigned)b);
     #endif
 
     f = (f & FLAG_CRY) | FLAG_SUB;
@@ -101,7 +89,7 @@ static void dec_b(void)
 static void ld_b_n(void)
 {
     #ifdef DUMP
-    printf("LD B, 0x%02X: B == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)b);
+    os_print("LD B, 0x%02X: B == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)b);
     #endif
     b = mem_readb(ip++);
 }
@@ -109,7 +97,7 @@ static void ld_b_n(void)
 static void rlca(void)
 {
     #ifdef DUMP
-    printf("RLCA: A == 0x%02X\n", (unsigned)a);
+    os_print("RLCA: A == 0x%02X\n", (unsigned)a);
     #endif
     f = (a & 0x80) ? FLAG_CRY : 0;
     __asm__ __volatile__ ("rol al,1" : "=a"(a) : "a"(a));
@@ -120,7 +108,7 @@ static void rlca(void)
 static void ld__nn_sp(void)
 {
     #ifdef DUMP
-    printf("LD (0x%04X), SP: SP == 0x%04X\n", (unsigned)nn, (unsigned)sp);
+    os_print("LD (0x%04X), SP: SP == 0x%04X\n", (unsigned)nn, (unsigned)sp);
     #endif
     mem_writew(nn, sp);
     ip += 2;
@@ -131,7 +119,7 @@ static void add_hl_bc(void)
     int result = hl + bc;
 
     #ifdef DUMP
-    printf("ADD HL, BC: HL == 0x%04X; BC == 0x%04X\n", (unsigned)hl, (unsigned)bc);
+    os_print("ADD HL, BC: HL == 0x%04X; BC == 0x%04X\n", (unsigned)hl, (unsigned)bc);
     #endif
 
     f &= FLAG_ZERO;
@@ -147,7 +135,7 @@ static void add_hl_bc(void)
 static void ld_a__bc(void)
 {
     #ifdef DUMP
-    printf("LD A, (BC): A == 0x%02X; BC == 0x%04X\n", (unsigned)a, (unsigned)bc);
+    os_print("LD A, (BC): A == 0x%02X; BC == 0x%04X\n", (unsigned)a, (unsigned)bc);
     #endif
     a = mem_readb(bc);
 }
@@ -155,7 +143,7 @@ static void ld_a__bc(void)
 static void dec_bc(void)
 {
     #ifdef DUMP
-    printf("DEC BC: BC == 0x%04X\n", (unsigned)bc);
+    os_print("DEC BC: BC == 0x%04X\n", (unsigned)bc);
     #endif
     bc--;
 }
@@ -163,7 +151,7 @@ static void dec_bc(void)
 static void inc_c(void)
 {
     #ifdef DUMP
-    printf("INC C: C == 0x%02X\n", (unsigned)c);
+    os_print("INC C: C == 0x%02X\n", (unsigned)c);
     #endif
 
     f &= FLAG_CRY;
@@ -176,7 +164,7 @@ static void inc_c(void)
 static void dec_c(void)
 {
     #ifdef DUMP
-    printf("DEC C: C == 0x%02X\n", (unsigned)c);
+    os_print("DEC C: C == 0x%02X\n", (unsigned)c);
     #endif
 
     f = (f & FLAG_CRY) | FLAG_SUB;
@@ -189,7 +177,7 @@ static void dec_c(void)
 static void ld_c_n(void)
 {
     #ifdef DUMP
-    printf("LD C, 0x%02X: C == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)c);
+    os_print("LD C, 0x%02X: C == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)c);
     #endif
     c = mem_readb(ip++);
 }
@@ -197,7 +185,7 @@ static void ld_c_n(void)
 static void rrca(void)
 {
     #ifdef DUMP
-    printf("RRCA: A == 0x%02X\n", (unsigned)a);
+    os_print("RRCA: A == 0x%02X\n", (unsigned)a);
     #endif
     f = (a & 0x01) ? FLAG_CRY : 0;
     __asm__ __volatile__ ("ror al,1" : "=a"(a) : "a"(a));
@@ -210,24 +198,24 @@ static void prefix0x10(void)
     switch (mem_readb(ip))
     {
         case 0x00:
-            printf("STOP\n");
+            os_print("STOP\n");
             if (!(io_regs->key1 & 1))
-                exit(0);
+                exit_ok();
             else
             {
                 double_speed ^= 1;
-                printf("Using %s speed\n", double_speed ? "double" : "single");
+                os_print("Using %s speed\n", double_speed ? "double" : "single");
             }
         default:
-            printf("Unknown opcode 0x%02X, prefixed by 0x10.\n", (unsigned)mem_readb(ip));
-            exit(1);
+            os_eprint("Unknown opcode 0x%02X, prefixed by 0x10.\n", (unsigned)mem_readb(ip));
+            exit_err();
     }
 }
 
 static void ld_de_nn(void)
 {
     #ifdef DUMP
-    printf("LD DE, 0x%04X: DE == 0x%04X\n", (unsigned)nn, (unsigned)de);
+    os_print("LD DE, 0x%04X: DE == 0x%04X\n", (unsigned)nn, (unsigned)de);
     #endif
     de = nn;
     ip += 2;
@@ -236,7 +224,7 @@ static void ld_de_nn(void)
 static void ld__de_a(void)
 {
     #ifdef DUMP
-    printf("LD (DE), A: DE == 0x%04X; A == 0x%02X\n", (unsigned)de, (unsigned)a);
+    os_print("LD (DE), A: DE == 0x%04X; A == 0x%02X\n", (unsigned)de, (unsigned)a);
     #endif
     mem_writeb(de, a);
 }
@@ -244,7 +232,7 @@ static void ld__de_a(void)
 static void inc_de(void)
 {
     #ifdef DUMP
-    printf("INC DE: DE == 0x%04X\n", (unsigned)de);
+    os_print("INC DE: DE == 0x%04X\n", (unsigned)de);
     #endif
     de++;
 }
@@ -252,7 +240,7 @@ static void inc_de(void)
 static void inc_d(void)
 {
     #ifdef DUMP
-    printf("INC D: D == 0x%02X\n", (unsigned)d);
+    os_print("INC D: D == 0x%02X\n", (unsigned)d);
     #endif
 
     f &= FLAG_CRY;
@@ -265,7 +253,7 @@ static void inc_d(void)
 static void dec_d(void)
 {
     #ifdef DUMP
-    printf("DEC D: D == 0x%02X\n", (unsigned)d);
+    os_print("DEC D: D == 0x%02X\n", (unsigned)d);
     #endif
 
     f = (f & FLAG_CRY) | FLAG_SUB;
@@ -278,7 +266,7 @@ static void dec_d(void)
 static void ld_d_n(void)
 {
     #ifdef DUMP
-    printf("LD D, 0x%02X: D == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)d);
+    os_print("LD D, 0x%02X: D == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)d);
     #endif
     d = mem_readb(ip++);
 }
@@ -288,7 +276,7 @@ static void rla(void)
     int cry = f & FLAG_CRY;
 
     #ifdef DUMP
-    printf("RLA: A == 0x%02X\n", (unsigned)a);
+    os_print("RLA: A == 0x%02X\n", (unsigned)a);
     #endif
 
     f = (a & 0x80) ? FLAG_CRY : 0;
@@ -301,7 +289,7 @@ static void jr(void)
 {
     #ifdef DUMP
     int off = (int)(signed char)mem_readb(ip);
-    printf("JR %i: 0x%04X → 0x%04X\n", (int)off, (unsigned)(ip - 1), (unsigned)(ip + off + 1));
+    os_print("JR %i: 0x%04X → 0x%04X\n", (int)off, (unsigned)(ip - 1), (unsigned)(ip + off + 1));
     #endif
     ip += (int)(signed char)mem_readb(ip) + 1;
 }
@@ -311,7 +299,7 @@ static void add_hl_de(void)
     int result = hl + de;
 
     #ifdef DUMP
-    printf("ADD HL, DE: HL == 0x%04X; DE == 0x%04X\n", (unsigned)hl, (unsigned)de);
+    os_print("ADD HL, DE: HL == 0x%04X; DE == 0x%04X\n", (unsigned)hl, (unsigned)de);
     #endif
 
     f &= FLAG_ZERO;
@@ -327,7 +315,7 @@ static void add_hl_de(void)
 static void ld_a__de(void)
 {
     #ifdef DUMP
-    printf("LD A, (DE): A == 0x%02X; DE == 0x%04X\n", (unsigned)a, (unsigned)de);
+    os_print("LD A, (DE): A == 0x%02X; DE == 0x%04X\n", (unsigned)a, (unsigned)de);
     #endif
     a = mem_readb(de);
 }
@@ -335,7 +323,7 @@ static void ld_a__de(void)
 static void dec_de(void)
 {
     #ifdef DUMP
-    printf("DEC DE: DE == 0x%04X\n", (unsigned)de);
+    os_print("DEC DE: DE == 0x%04X\n", (unsigned)de);
     #endif
     de--;
 }
@@ -343,7 +331,7 @@ static void dec_de(void)
 static void inc_e(void)
 {
     #ifdef DUMP
-    printf("INC E: E == 0x%02X\n", (unsigned)e);
+    os_print("INC E: E == 0x%02X\n", (unsigned)e);
     #endif
 
     f &= FLAG_CRY;
@@ -356,7 +344,7 @@ static void inc_e(void)
 static void dec_e(void)
 {
     #ifdef DUMP
-    printf("DEC E: E == 0x%02X\n", (unsigned)e);
+    os_print("DEC E: E == 0x%02X\n", (unsigned)e);
     #endif
 
     f = (f & FLAG_CRY) | FLAG_SUB;
@@ -369,7 +357,7 @@ static void dec_e(void)
 static void ld_e_n(void)
 {
     #ifdef DUMP
-    printf("LD E, 0x%02X: E == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)e);
+    os_print("LD E, 0x%02X: E == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)e);
     #endif
     e = mem_readb(ip++);
 }
@@ -379,7 +367,7 @@ static void rra(void)
     int cry = f & FLAG_CRY;
 
     #ifdef DUMP
-    printf("RRA: A == 0x%02X\n", (unsigned)a);
+    os_print("RRA: A == 0x%02X\n", (unsigned)a);
     #endif
 
     f = (a & 0x01) ? FLAG_CRY : 0;
@@ -393,14 +381,14 @@ static void jrnz(void)
     if (!(f & FLAG_ZERO))
     {
         #ifdef DUMP
-        printf("JRNZ, branching\n");
+        os_print("JRNZ, branching\n");
         #endif
         jr();
     }
     else
     {
         #ifdef DUMP
-        printf("JRNZ, staying\n");
+        os_print("JRNZ, staying\n");
         #endif
         ip++;
     }
@@ -409,7 +397,7 @@ static void jrnz(void)
 static void ld_hl_nn(void)
 {
     #ifdef DUMP
-    printf("LD HL, 0x%04X: HL == 0x%04X\n", (unsigned)nn, (unsigned)hl);
+    os_print("LD HL, 0x%04X: HL == 0x%04X\n", (unsigned)nn, (unsigned)hl);
     #endif
     hl = nn;
     ip += 2;
@@ -418,7 +406,7 @@ static void ld_hl_nn(void)
 static void ldi__hl_a(void)
 {
     #ifdef DUMP
-    printf("LDI (HL), A: HL == 0x%04X; A == 0x%02X\n", (unsigned)hl, (unsigned)a);
+    os_print("LDI (HL), A: HL == 0x%04X; A == 0x%02X\n", (unsigned)hl, (unsigned)a);
     #endif
     mem_writeb(hl++, a);
 }
@@ -426,7 +414,7 @@ static void ldi__hl_a(void)
 static void inc_hl(void)
 {
     #ifdef DUMP
-    printf("INC HL: HL == 0x%04X\n", (unsigned)hl);
+    os_print("INC HL: HL == 0x%04X\n", (unsigned)hl);
     #endif
     hl++;
 }
@@ -434,7 +422,7 @@ static void inc_hl(void)
 static void inc_h(void)
 {
     #ifdef DUMP
-    printf("INC H: H == 0x%02X\n", (unsigned)h);
+    os_print("INC H: H == 0x%02X\n", (unsigned)h);
     #endif
 
     f &= FLAG_CRY;
@@ -447,7 +435,7 @@ static void inc_h(void)
 static void dec_h(void)
 {
     #ifdef DUMP
-    printf("DEC H: H == 0x%02X\n", (unsigned)h);
+    os_print("DEC H: H == 0x%02X\n", (unsigned)h);
     #endif
 
     f = (f & FLAG_CRY) | FLAG_SUB;
@@ -460,7 +448,7 @@ static void dec_h(void)
 static void ld_h_n(void)
 {
     #ifdef DUMP
-    printf("LD H, 0x%02X: H == 0x%02X\n", mem_readb(ip), h);
+    os_print("LD H, 0x%02X: H == 0x%02X\n", mem_readb(ip), h);
     #endif
     h = mem_readb(ip++);
 }
@@ -471,7 +459,7 @@ static void daa(void)
     uint16_t new_a = a;
 
     #ifdef DUMP
-    printf("DAA: A == 0x%02X; F == 0x%02X\n", (unsigned)a, (unsigned)f);
+    os_print("DAA: A == 0x%02X; F == 0x%02X\n", (unsigned)a, (unsigned)f);
     #endif
 
     f &= FLAG_SUB;
@@ -511,14 +499,14 @@ static void jrz(void)
     if (f & FLAG_ZERO)
     {
         #ifdef DUMP
-        printf("JRZ, branching\n");
+        os_print("JRZ, branching\n");
         #endif
         jr();
     }
     else
     {
         #ifdef DUMP
-        printf("JRZ, staying\n");
+        os_print("JRZ, staying\n");
         #endif
         ip++;
     }
@@ -527,7 +515,7 @@ static void jrz(void)
 static void add_hl_hl(void)
 {
     #ifdef DUMP
-    printf("ADD HL, HL: HL == 0x%02X\n", (unsigned)hl);
+    os_print("ADD HL, HL: HL == 0x%02X\n", (unsigned)hl);
     #endif
 
     f &= FLAG_ZERO;
@@ -542,7 +530,7 @@ static void add_hl_hl(void)
 static void ldi_a__hl(void)
 {
     #ifdef DUMP
-    printf("LDI A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
+    os_print("LDI A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
     #endif
     a = mem_readb(hl++);
 }
@@ -550,7 +538,7 @@ static void ldi_a__hl(void)
 static void dec_hl(void)
 {
     #ifdef DUMP
-    printf("DEC HL: HL == 0x%04X\n", (unsigned)hl);
+    os_print("DEC HL: HL == 0x%04X\n", (unsigned)hl);
     #endif
     hl--;
 }
@@ -558,7 +546,7 @@ static void dec_hl(void)
 static void inc_l(void)
 {
     #ifdef DUMP
-    printf("INC L: L == 0x%02X\n", (unsigned)l);
+    os_print("INC L: L == 0x%02X\n", (unsigned)l);
     #endif
 
     f &= FLAG_CRY;
@@ -571,7 +559,7 @@ static void inc_l(void)
 static void dec_l(void)
 {
     #ifdef DUMP
-    printf("DEC L: L == 0x%02X\n", (unsigned)l);
+    os_print("DEC L: L == 0x%02X\n", (unsigned)l);
     #endif
 
     f = (f & FLAG_CRY) | FLAG_SUB;
@@ -584,7 +572,7 @@ static void dec_l(void)
 static void ld_l_n(void)
 {
     #ifdef DUMP
-    printf("LD L, 0x%02X: L == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)l);
+    os_print("LD L, 0x%02X: L == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)l);
     #endif
     l = mem_readb(ip++);
 }
@@ -592,7 +580,7 @@ static void ld_l_n(void)
 static void cpl_a(void)
 {
     #ifdef DUMP
-    printf("CPL A: A == 0x%02X\n", (unsigned)a);
+    os_print("CPL A: A == 0x%02X\n", (unsigned)a);
     #endif
     a = ~a & 0xFF;
     f = FLAG_SUB | FLAG_HCRY;
@@ -604,14 +592,14 @@ static void jrnc(void)
     if (!(f & FLAG_CRY))
     {
         #ifdef DUMP
-        printf("JRNC, branching\n");
+        os_print("JRNC, branching\n");
         #endif
         jr();
     }
     else
     {
         #ifdef DUMP
-        printf("JRNC, staying\n");
+        os_print("JRNC, staying\n");
         #endif
         ip++;
     }
@@ -620,7 +608,7 @@ static void jrnc(void)
 static void ld_sp_nn(void)
 {
     #ifdef DUMP
-    printf("LD SP, 0x%04X: SP == 0x%04X\n", (unsigned)nn, (unsigned)sp);
+    os_print("LD SP, 0x%04X: SP == 0x%04X\n", (unsigned)nn, (unsigned)sp);
     #endif
     sp = nn;
     ip += 2;
@@ -629,7 +617,7 @@ static void ld_sp_nn(void)
 static void ldd__hl_a(void)
 {
     #ifdef DUMP
-    printf("LDD (HL), A: HL == 0x%04X; A == 0x%02X\n", (unsigned)hl, (unsigned)a);
+    os_print("LDD (HL), A: HL == 0x%04X; A == 0x%02X\n", (unsigned)hl, (unsigned)a);
     #endif
     mem_writeb(hl--, a);
 }
@@ -637,7 +625,7 @@ static void ldd__hl_a(void)
 static void inc_sp(void)
 {
     #ifdef DUMP
-    printf("INC SP: SP == 0x%04X\n", (unsigned)sp);
+    os_print("INC SP: SP == 0x%04X\n", (unsigned)sp);
     #endif
     sp++;
 }
@@ -647,7 +635,7 @@ static void inc__hl(void)
     uint8_t val;
 
     #ifdef DUMP
-    printf("INC (HL): HL == 0x%04X\n", (unsigned)hl);
+    os_print("INC (HL): HL == 0x%04X\n", (unsigned)hl);
     #endif
 
     val = mem_readb(hl);
@@ -664,7 +652,7 @@ static void dec__hl(void)
     uint8_t val;
 
     #ifdef DUMP
-    printf("DEC (HL): HL == 0x%04X\n", (unsigned)hl);
+    os_print("DEC (HL): HL == 0x%04X\n", (unsigned)hl);
     #endif
 
     val = mem_readb(hl);
@@ -679,7 +667,7 @@ static void dec__hl(void)
 static void ld__hl_n(void)
 {
     #ifdef DUMP
-    printf("LD (HL), 0x%02X: HL == 0x%04X\n", (unsigned)mem_readb(ip), (unsigned)hl);
+    os_print("LD (HL), 0x%02X: HL == 0x%04X\n", (unsigned)mem_readb(ip), (unsigned)hl);
     #endif
     mem_writeb(hl, mem_readb(ip++));
 }
@@ -687,7 +675,7 @@ static void ld__hl_n(void)
 static void scf(void)
 {
     #ifdef DUMP
-    printf("SCF: F == 0x%02X\n", (unsigned)f);
+    os_print("SCF: F == 0x%02X\n", (unsigned)f);
     #endif
     f |= FLAG_CRY;
 }
@@ -697,14 +685,14 @@ static void jrc(void)
     if (f & FLAG_CRY)
     {
         #ifdef DUMP
-        printf("JRC, branching\n");
+        os_print("JRC, branching\n");
         #endif
         jr();
     }
     else
     {
         #ifdef DUMP
-        printf("JRC, staying\n");
+        os_print("JRC, staying\n");
         #endif
         ip++;
     }
@@ -715,7 +703,7 @@ static void add_hl_sp(void)
     int result = hl + sp;
 
     #ifdef DUMP
-    printf("ADD HL, SP: HL == 0x%04X; SP == 0x%04X\n", (unsigned)hl, (unsigned)sp);
+    os_print("ADD HL, SP: HL == 0x%04X; SP == 0x%04X\n", (unsigned)hl, (unsigned)sp);
     #endif
 
     f &= FLAG_ZERO;
@@ -731,7 +719,7 @@ static void add_hl_sp(void)
 static void ldd_a__hl(void)
 {
     #ifdef DUMP
-    printf("LDD A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
+    os_print("LDD A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
     #endif
     a = mem_readb(hl--);
 }
@@ -739,7 +727,7 @@ static void ldd_a__hl(void)
 static void dec_sp(void)
 {
     #ifdef DUMP
-    printf("DEC SP: SP == 0x%04X\n", (unsigned)sp);
+    os_print("DEC SP: SP == 0x%04X\n", (unsigned)sp);
     #endif
     sp--;
 }
@@ -747,7 +735,7 @@ static void dec_sp(void)
 static void inc_a(void)
 {
     #ifdef DUMP
-    printf("INC A: A == 0x%02X\n", (unsigned)a);
+    os_print("INC A: A == 0x%02X\n", (unsigned)a);
     #endif
 
     f &= FLAG_CRY;
@@ -760,7 +748,7 @@ static void inc_a(void)
 static void dec_a(void)
 {
     #ifdef DUMP
-    printf("DEC A: A == 0x%02X\n", (unsigned)a);
+    os_print("DEC A: A == 0x%02X\n", (unsigned)a);
     #endif
 
     f = (f & FLAG_CRY) | FLAG_SUB;
@@ -773,7 +761,7 @@ static void dec_a(void)
 static void ld_a_s(void)
 {
     #ifdef DUMP
-    printf("LD A, 0x%02X: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
+    os_print("LD A, 0x%02X: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
     #endif
     a = mem_readb(ip++);
 }
@@ -781,7 +769,7 @@ static void ld_a_s(void)
 static void ccf(void)
 {
     #ifdef DUMP
-    printf("CCF: F == 0x%02X\n", (unsigned)f);
+    os_print("CCF: F == 0x%02X\n", (unsigned)f);
     #endif
     f ^= FLAG_CRY;
 }
@@ -789,14 +777,14 @@ static void ccf(void)
 static void ld_b_b(void)
 {
     #ifdef DUMP
-    printf("LD B, B: B == 0x%02X\n", (unsigned)b);
+    os_print("LD B, B: B == 0x%02X\n", (unsigned)b);
     #endif
 }
 
 static void ld_b_c(void)
 {
     #ifdef DUMP
-    printf("LD B, C: B == 0x%02X; C == 0x%02X\n", (unsigned)b, (unsigned)c);
+    os_print("LD B, C: B == 0x%02X; C == 0x%02X\n", (unsigned)b, (unsigned)c);
     #endif
     b = c;
 }
@@ -804,7 +792,7 @@ static void ld_b_c(void)
 static void ld_b_d(void)
 {
     #ifdef DUMP
-    printf("LD B, D: B == 0x%02X; D == 0x%02X\n", (unsigned)b, (unsigned)d);
+    os_print("LD B, D: B == 0x%02X; D == 0x%02X\n", (unsigned)b, (unsigned)d);
     #endif
     b = d;
 }
@@ -812,7 +800,7 @@ static void ld_b_d(void)
 static void ld_b_e(void)
 {
     #ifdef DUMP
-    printf("LD B, E: B == 0x%02X; E == 0x%02X\n", (unsigned)b, (unsigned)e);
+    os_print("LD B, E: B == 0x%02X; E == 0x%02X\n", (unsigned)b, (unsigned)e);
     #endif
     b = e;
 }
@@ -820,7 +808,7 @@ static void ld_b_e(void)
 static void ld_b_h(void)
 {
     #ifdef DUMP
-    printf("LD B, H: B == 0x%02X; H == 0x%02X\n", (unsigned)b, (unsigned)h);
+    os_print("LD B, H: B == 0x%02X; H == 0x%02X\n", (unsigned)b, (unsigned)h);
     #endif
     b = h;
 }
@@ -828,7 +816,7 @@ static void ld_b_h(void)
 static void ld_b_l(void)
 {
     #ifdef DUMP
-    printf("LD B, L: B == 0x%02X; L == 0x%02X\n", (unsigned)b, (unsigned)l);
+    os_print("LD B, L: B == 0x%02X; L == 0x%02X\n", (unsigned)b, (unsigned)l);
     #endif
     b = l;
 }
@@ -836,7 +824,7 @@ static void ld_b_l(void)
 static void ld_b__hl(void)
 {
     #ifdef DUMP
-    printf("LD B, (HL): B == 0x%02X; HL == 0x%04X\n", (unsigned)b, (unsigned)hl);
+    os_print("LD B, (HL): B == 0x%02X; HL == 0x%04X\n", (unsigned)b, (unsigned)hl);
     #endif
     b = mem_readb(hl);
 }
@@ -844,7 +832,7 @@ static void ld_b__hl(void)
 static void ld_b_a(void)
 {
     #ifdef DUMP
-    printf("LD B, A: B == 0x%02X; A == 0x%02X\n", (unsigned)b, (unsigned)a);
+    os_print("LD B, A: B == 0x%02X; A == 0x%02X\n", (unsigned)b, (unsigned)a);
     #endif
     b = a;
 }
@@ -852,7 +840,7 @@ static void ld_b_a(void)
 static void ld_c_b(void)
 {
     #ifdef DUMP
-    printf("LD C, B: C == 0x%02X; B == 0x%02X\n", (unsigned)c, (unsigned)b);
+    os_print("LD C, B: C == 0x%02X; B == 0x%02X\n", (unsigned)c, (unsigned)b);
     #endif
     c = b;
 }
@@ -860,14 +848,14 @@ static void ld_c_b(void)
 static void ld_c_c(void)
 {
     #ifdef DUMP
-    printf("LD C, C: C == 0x%02X\n", (unsigned)c);
+    os_print("LD C, C: C == 0x%02X\n", (unsigned)c);
     #endif
 }
 
 static void ld_c_d(void)
 {
     #ifdef DUMP
-    printf("LD C, D: C == 0x%02X; D == 0x%02X\n", (unsigned)c, (unsigned)d);
+    os_print("LD C, D: C == 0x%02X; D == 0x%02X\n", (unsigned)c, (unsigned)d);
     #endif
     c = d;
 }
@@ -875,7 +863,7 @@ static void ld_c_d(void)
 static void ld_c_e(void)
 {
     #ifdef DUMP
-    printf("LD C, E: C == 0x%02X; E == 0x%02X\n", (unsigned)c, (unsigned)e);
+    os_print("LD C, E: C == 0x%02X; E == 0x%02X\n", (unsigned)c, (unsigned)e);
     #endif
     c = e;
 }
@@ -883,7 +871,7 @@ static void ld_c_e(void)
 static void ld_c_h(void)
 {
     #ifdef DUMP
-    printf("LD C, H: C == 0x%02X; H == 0x%02X\n", (unsigned)c, (unsigned)h);
+    os_print("LD C, H: C == 0x%02X; H == 0x%02X\n", (unsigned)c, (unsigned)h);
     #endif
     c = h;
 }
@@ -891,7 +879,7 @@ static void ld_c_h(void)
 static void ld_c_l(void)
 {
     #ifdef DUMP
-    printf("LD C, L: C == 0x%02X; L == 0x%02X\n", (unsigned)c, (unsigned)l);
+    os_print("LD C, L: C == 0x%02X; L == 0x%02X\n", (unsigned)c, (unsigned)l);
     #endif
     c = l;
 }
@@ -899,7 +887,7 @@ static void ld_c_l(void)
 static void ld_c__hl(void)
 {
     #ifdef DUMP
-    printf("LD C, (HL): C == 0x%02X; HL == 0x%04X\n", (unsigned)c, (unsigned)hl);
+    os_print("LD C, (HL): C == 0x%02X; HL == 0x%04X\n", (unsigned)c, (unsigned)hl);
     #endif
     c = mem_readb(hl);
 }
@@ -907,7 +895,7 @@ static void ld_c__hl(void)
 static void ld_c_a(void)
 {
     #ifdef DUMP
-    printf("LD C, A: C == 0x%02X; A == 0x%02X\n", (unsigned)c, (unsigned)a);
+    os_print("LD C, A: C == 0x%02X; A == 0x%02X\n", (unsigned)c, (unsigned)a);
     #endif
     c = a;
 }
@@ -915,7 +903,7 @@ static void ld_c_a(void)
 static void ld_d_b(void)
 {
     #ifdef DUMP
-    printf("LD D, B: D == 0x%02X; B == 0x%02X\n", (unsigned)d, (unsigned)b);
+    os_print("LD D, B: D == 0x%02X; B == 0x%02X\n", (unsigned)d, (unsigned)b);
     #endif
     d = b;
 }
@@ -923,7 +911,7 @@ static void ld_d_b(void)
 static void ld_d_c(void)
 {
     #ifdef DUMP
-    printf("LD D, C: D == 0x%02X; C == 0x%02X\n", (unsigned)d, (unsigned)c);
+    os_print("LD D, C: D == 0x%02X; C == 0x%02X\n", (unsigned)d, (unsigned)c);
     #endif
     d = c;
 }
@@ -931,14 +919,14 @@ static void ld_d_c(void)
 static void ld_d_d(void)
 {
     #ifdef DUMP
-    printf("LD D, D: D == 0x%02X\n", (unsigned)d);
+    os_print("LD D, D: D == 0x%02X\n", (unsigned)d);
     #endif
 }
 
 static void ld_d_e(void)
 {
     #ifdef DUMP
-    printf("LD D, E: D == 0x%02X; E == 0x%02X\n", (unsigned)d, (unsigned)e);
+    os_print("LD D, E: D == 0x%02X; E == 0x%02X\n", (unsigned)d, (unsigned)e);
     #endif
     d = e;
 }
@@ -946,7 +934,7 @@ static void ld_d_e(void)
 static void ld_d_h(void)
 {
     #ifdef DUMP
-    printf("LD D, H: D == 0x%02X; H == 0x%02X\n", (unsigned)d, (unsigned)h);
+    os_print("LD D, H: D == 0x%02X; H == 0x%02X\n", (unsigned)d, (unsigned)h);
     #endif
     d = h;
 }
@@ -954,7 +942,7 @@ static void ld_d_h(void)
 static void ld_d_l(void)
 {
     #ifdef DUMP
-    printf("LD D, L: D == 0x%02X; L == 0x%02X\n", (unsigned)d, (unsigned)l);
+    os_print("LD D, L: D == 0x%02X; L == 0x%02X\n", (unsigned)d, (unsigned)l);
     #endif
     d = l;
 }
@@ -962,7 +950,7 @@ static void ld_d_l(void)
 static void ld_d__hl(void)
 {
     #ifdef DUMP
-    printf("LD D, (HL): D == 0x%02X; HL == 0x%04X\n", (unsigned)d, (unsigned)hl);
+    os_print("LD D, (HL): D == 0x%02X; HL == 0x%04X\n", (unsigned)d, (unsigned)hl);
     #endif
     d = mem_readb(hl);
 }
@@ -970,7 +958,7 @@ static void ld_d__hl(void)
 static void ld_d_a(void)
 {
     #ifdef DUMP
-    printf("LD D, A: D == 0x%02X; A == 0x%02X\n", (unsigned)d, (unsigned)a);
+    os_print("LD D, A: D == 0x%02X; A == 0x%02X\n", (unsigned)d, (unsigned)a);
     #endif
     d = a;
 }
@@ -978,7 +966,7 @@ static void ld_d_a(void)
 static void ld_e_b(void)
 {
     #ifdef DUMP
-    printf("LD E, B: E == 0x%02X; B == 0x%02X\n", (unsigned)e, (unsigned)b);
+    os_print("LD E, B: E == 0x%02X; B == 0x%02X\n", (unsigned)e, (unsigned)b);
     #endif
     e = b;
 }
@@ -986,7 +974,7 @@ static void ld_e_b(void)
 static void ld_e_c(void)
 {
     #ifdef DUMP
-    printf("LD E, C: E == 0x%02X; C == 0x%02X\n", (unsigned)e, (unsigned)c);
+    os_print("LD E, C: E == 0x%02X; C == 0x%02X\n", (unsigned)e, (unsigned)c);
     #endif
     e = c;
 }
@@ -994,7 +982,7 @@ static void ld_e_c(void)
 static void ld_e_d(void)
 {
     #ifdef DUMP
-    printf("LD E, D: E == 0x%02X; D == 0x%02X\n", (unsigned)e, (unsigned)d);
+    os_print("LD E, D: E == 0x%02X; D == 0x%02X\n", (unsigned)e, (unsigned)d);
     #endif
     e = d;
 }
@@ -1002,14 +990,14 @@ static void ld_e_d(void)
 static void ld_e_e(void)
 {
     #ifdef DUMP
-    printf("LD E, E: E == 0x%02X\n", (unsigned)e);
+    os_print("LD E, E: E == 0x%02X\n", (unsigned)e);
     #endif
 }
 
 static void ld_e_h(void)
 {
     #ifdef DUMP
-    printf("LD E, H: E == 0x%02X; H == 0x%02X\n", (unsigned)e, (unsigned)h);
+    os_print("LD E, H: E == 0x%02X; H == 0x%02X\n", (unsigned)e, (unsigned)h);
     #endif
     e = h;
 }
@@ -1017,7 +1005,7 @@ static void ld_e_h(void)
 static void ld_e_l(void)
 {
     #ifdef DUMP
-    printf("LD E, L: E == 0x%02X; L == 0x%02X\n", (unsigned)e, (unsigned)l);
+    os_print("LD E, L: E == 0x%02X; L == 0x%02X\n", (unsigned)e, (unsigned)l);
     #endif
     e = l;
 }
@@ -1025,7 +1013,7 @@ static void ld_e_l(void)
 static void ld_e__hl(void)
 {
     #ifdef DUMP
-    printf("LD E, (HL): E == 0x%02X; HL == 0x%04X\n", (unsigned)e, (unsigned)hl);
+    os_print("LD E, (HL): E == 0x%02X; HL == 0x%04X\n", (unsigned)e, (unsigned)hl);
     #endif
     e = mem_readb(hl);
 }
@@ -1033,7 +1021,7 @@ static void ld_e__hl(void)
 static void ld_e_a(void)
 {
     #ifdef DUMP
-    printf("LD E, A: E == 0x%02X; A == 0x%02X\n", (unsigned)e, (unsigned)a);
+    os_print("LD E, A: E == 0x%02X; A == 0x%02X\n", (unsigned)e, (unsigned)a);
     #endif
     e = a;
 }
@@ -1041,7 +1029,7 @@ static void ld_e_a(void)
 static void ld_h_b(void)
 {
     #ifdef DUMP
-    printf("LD H, B: H == 0x%02X; B == 0x%02X\n", (unsigned)h, (unsigned)b);
+    os_print("LD H, B: H == 0x%02X; B == 0x%02X\n", (unsigned)h, (unsigned)b);
     #endif
     h = b;
 }
@@ -1049,7 +1037,7 @@ static void ld_h_b(void)
 static void ld_h_c(void)
 {
     #ifdef DUMP
-    printf("LD H, C: D == 0x%02X; C == 0x%02X\n", (unsigned)h, (unsigned)c);
+    os_print("LD H, C: D == 0x%02X; C == 0x%02X\n", (unsigned)h, (unsigned)c);
     #endif
     h = c;
 }
@@ -1057,7 +1045,7 @@ static void ld_h_c(void)
 static void ld_h_d(void)
 {
     #ifdef DUMP
-    printf("LD H, D: H == 0x%02X; D == 0x%02X\n", (unsigned)h, (unsigned)d);
+    os_print("LD H, D: H == 0x%02X; D == 0x%02X\n", (unsigned)h, (unsigned)d);
     #endif
     h = d;
 }
@@ -1065,7 +1053,7 @@ static void ld_h_d(void)
 static void ld_h_e(void)
 {
     #ifdef DUMP
-    printf("LD H, E: H == 0x%02X; E == 0x%02X\n", (unsigned)h, (unsigned)e);
+    os_print("LD H, E: H == 0x%02X; E == 0x%02X\n", (unsigned)h, (unsigned)e);
     #endif
     h = e;
 }
@@ -1073,14 +1061,14 @@ static void ld_h_e(void)
 static void ld_h_h(void)
 {
     #ifdef DUMP
-    printf("LD H, H: H == 0x%02X\n", (unsigned)h);
+    os_print("LD H, H: H == 0x%02X\n", (unsigned)h);
     #endif
 }
 
 static void ld_h_l(void)
 {
     #ifdef DUMP
-    printf("LD H, L: H == 0x%02X; L == 0x%02X\n", (unsigned)h, (unsigned)l);
+    os_print("LD H, L: H == 0x%02X; L == 0x%02X\n", (unsigned)h, (unsigned)l);
     #endif
     h = l;
 }
@@ -1088,7 +1076,7 @@ static void ld_h_l(void)
 static void ld_h__hl(void)
 {
     #ifdef DUMP
-    printf("LD H, (HL): H == 0x%02X; HL == 0x%04X\n", (unsigned)h, (unsigned)hl);
+    os_print("LD H, (HL): H == 0x%02X; HL == 0x%04X\n", (unsigned)h, (unsigned)hl);
     #endif
     h = mem_readb(hl);
 }
@@ -1096,7 +1084,7 @@ static void ld_h__hl(void)
 static void ld_h_a(void)
 {
     #ifdef DUMP
-    printf("LD H, A: H == 0x%02X; A == 0x%02X\n", (unsigned)h, (unsigned)a);
+    os_print("LD H, A: H == 0x%02X; A == 0x%02X\n", (unsigned)h, (unsigned)a);
     #endif
     h = a;
 }
@@ -1104,7 +1092,7 @@ static void ld_h_a(void)
 static void ld_l_b(void)
 {
     #ifdef DUMP
-    printf("LD L, B: L == 0x%02X; B == 0x%02X\n", (unsigned)l, (unsigned)b);
+    os_print("LD L, B: L == 0x%02X; B == 0x%02X\n", (unsigned)l, (unsigned)b);
     #endif
     l = b;
 }
@@ -1112,7 +1100,7 @@ static void ld_l_b(void)
 static void ld_l_c(void)
 {
     #ifdef DUMP
-    printf("LD L, C: L == 0x%02X; C == 0x%02X\n", (unsigned)l, (unsigned)c);
+    os_print("LD L, C: L == 0x%02X; C == 0x%02X\n", (unsigned)l, (unsigned)c);
     #endif
     l = c;
 }
@@ -1120,7 +1108,7 @@ static void ld_l_c(void)
 static void ld_l_d(void)
 {
     #ifdef DUMP
-    printf("LD L, D: L == 0x%02X; D == 0x%02X\n", (unsigned)l, (unsigned)d);
+    os_print("LD L, D: L == 0x%02X; D == 0x%02X\n", (unsigned)l, (unsigned)d);
     #endif
     l = d;
 }
@@ -1128,7 +1116,7 @@ static void ld_l_d(void)
 static void ld_l_e(void)
 {
     #ifdef DUMP
-    printf("LD L, E: L == 0x%02X, E == 0x%02X\n", (unsigned)l, (unsigned)e);
+    os_print("LD L, E: L == 0x%02X, E == 0x%02X\n", (unsigned)l, (unsigned)e);
     #endif
     l = e;
 }
@@ -1136,7 +1124,7 @@ static void ld_l_e(void)
 static void ld_l_h(void)
 {
     #ifdef DUMP
-    printf("LD L, H: L == 0x%02X; H == 0x%02X\n", (unsigned)l, (unsigned)h);
+    os_print("LD L, H: L == 0x%02X; H == 0x%02X\n", (unsigned)l, (unsigned)h);
     #endif
     l = h;
 }
@@ -1144,14 +1132,14 @@ static void ld_l_h(void)
 static void ld_l_l(void)
 {
     #ifdef DUMP
-    printf("LD L, L: L == 0x%02X\n", (unsigned)l);
+    os_print("LD L, L: L == 0x%02X\n", (unsigned)l);
     #endif
 }
 
 static void ld_l__hl(void)
 {
     #ifdef DUMP
-    printf("LD L, (HL): L == 0x%02X; HL == 0x%04X\n", (unsigned)l, (unsigned)hl);
+    os_print("LD L, (HL): L == 0x%02X; HL == 0x%04X\n", (unsigned)l, (unsigned)hl);
     #endif
     l = mem_readb(hl);
 }
@@ -1159,7 +1147,7 @@ static void ld_l__hl(void)
 static void ld_l_a(void)
 {
     #ifdef DUMP
-    printf("LD L, A: L == 0x%02X; A == 0x%02X\n", (unsigned)l, (unsigned)a);
+    os_print("LD L, A: L == 0x%02X; A == 0x%02X\n", (unsigned)l, (unsigned)a);
     #endif
     l = a;
 }
@@ -1167,7 +1155,7 @@ static void ld_l_a(void)
 static void ld__hl_b(void)
 {
     #ifdef DUMP
-    printf("LD (HL), B: HL == 0x%04X; B == 0x%02X\n", (unsigned)hl, (unsigned)b);
+    os_print("LD (HL), B: HL == 0x%04X; B == 0x%02X\n", (unsigned)hl, (unsigned)b);
     #endif
     mem_writeb(hl, b);
 }
@@ -1175,7 +1163,7 @@ static void ld__hl_b(void)
 static void ld__hl_c(void)
 {
     #ifdef DUMP
-    printf("LD (HL), C: HL == 0x%04X; C == 0x%02X\n", (unsigned)hl, (unsigned)c);
+    os_print("LD (HL), C: HL == 0x%04X; C == 0x%02X\n", (unsigned)hl, (unsigned)c);
     #endif
     mem_writeb(hl, c);
 }
@@ -1183,7 +1171,7 @@ static void ld__hl_c(void)
 static void ld__hl_d(void)
 {
     #ifdef DUMP
-    printf("LD (HL), D: HL == 0x%04X; D == 0x%02X\n", (unsigned)hl, (unsigned)d);
+    os_print("LD (HL), D: HL == 0x%04X; D == 0x%02X\n", (unsigned)hl, (unsigned)d);
     #endif
     mem_writeb(hl, d);
 }
@@ -1191,7 +1179,7 @@ static void ld__hl_d(void)
 static void ld__hl_e(void)
 {
     #ifdef DUMP
-    printf("LD (HL), E: HL == 0x%04X; E == 0x%02X\n", (unsigned)hl, (unsigned)e);
+    os_print("LD (HL), E: HL == 0x%04X; E == 0x%02X\n", (unsigned)hl, (unsigned)e);
     #endif
     mem_writeb(hl, e);
 }
@@ -1199,7 +1187,7 @@ static void ld__hl_e(void)
 static void ld__hl_h(void)
 {
     #ifdef DUMP
-    printf("LD (HL), H: HL == 0x%04X; H == 0x%02X\n", (unsigned)hl, (unsigned)h);
+    os_print("LD (HL), H: HL == 0x%04X; H == 0x%02X\n", (unsigned)hl, (unsigned)h);
     #endif
     mem_writeb(hl, h);
 }
@@ -1207,7 +1195,7 @@ static void ld__hl_h(void)
 static void ld__hl_l(void)
 {
     #ifdef DUMP
-    printf("LD (HL), L: HL == 0x%04X; L == 0x%02X\n", (unsigned)hl, (unsigned)l);
+    os_print("LD (HL), L: HL == 0x%04X; L == 0x%02X\n", (unsigned)hl, (unsigned)l);
     #endif
     mem_writeb(hl, l);
 }
@@ -1215,7 +1203,7 @@ static void ld__hl_l(void)
 static void halt(void)
 {
     #ifdef DUMP
-    printf("HALT\n");
+    os_print("HALT\n");
     #endif
     interrupt_issued = 0;
     while (!interrupt_issued)
@@ -1228,7 +1216,7 @@ static void halt(void)
 static void ld__hl_a(void)
 {
     #ifdef DUMP
-    printf("LD (HL), A: HL == 0x%04X; A == 0x%02X\n", (unsigned)hl, (unsigned)a);
+    os_print("LD (HL), A: HL == 0x%04X; A == 0x%02X\n", (unsigned)hl, (unsigned)a);
     #endif
     mem_writeb(hl, a);
 }
@@ -1236,7 +1224,7 @@ static void ld__hl_a(void)
 static void ld_a_b(void)
 {
     #ifdef DUMP
-    printf("LD A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
+    os_print("LD A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
     #endif
     a = b;
 }
@@ -1244,7 +1232,7 @@ static void ld_a_b(void)
 static void ld_a_c(void)
 {
     #ifdef DUMP
-    printf("LD A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
+    os_print("LD A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
     #endif
     a = c;
 }
@@ -1252,7 +1240,7 @@ static void ld_a_c(void)
 static void ld_a_d(void)
 {
     #ifdef DUMP
-    printf("LD A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
+    os_print("LD A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
     #endif
     a = d;
 }
@@ -1260,7 +1248,7 @@ static void ld_a_d(void)
 static void ld_a_e(void)
 {
     #ifdef DUMP
-    printf("LD A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
+    os_print("LD A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
     #endif
     a = e;
 }
@@ -1268,7 +1256,7 @@ static void ld_a_e(void)
 static void ld_a_h(void)
 {
     #ifdef DUMP
-    printf("LD A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
+    os_print("LD A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
     #endif
     a = h;
 }
@@ -1276,7 +1264,7 @@ static void ld_a_h(void)
 static void ld_a_l(void)
 {
     #ifdef DUMP
-    printf("LD A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
+    os_print("LD A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
     #endif
     a = l;
 }
@@ -1284,7 +1272,7 @@ static void ld_a_l(void)
 static void ld_a__hl(void)
 {
     #ifdef DUMP
-    printf("LD A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
+    os_print("LD A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
     #endif
     a = mem_readb(hl);
 }
@@ -1292,7 +1280,7 @@ static void ld_a__hl(void)
 static void ld_a_a(void)
 {
     #ifdef DUMP
-    printf("LD A, A: A == 0x%02X\n", (unsigned)a);
+    os_print("LD A, A: A == 0x%02X\n", (unsigned)a);
     #endif
 }
 
@@ -1301,7 +1289,7 @@ static void add_a_b(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("ADD A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
+    os_print("ADD A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
     #endif
     __asm__ __volatile__ ("add al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(b));
 
@@ -1319,7 +1307,7 @@ static void add_a_c(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("ADD A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
+    os_print("ADD A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
     #endif
     __asm__ __volatile__ ("add al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(c));
 
@@ -1337,7 +1325,7 @@ static void add_a_d(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("ADD A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
+    os_print("ADD A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
     #endif
     __asm__ __volatile__ ("add al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(d));
 
@@ -1355,7 +1343,7 @@ static void add_a_e(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("ADD A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
+    os_print("ADD A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
     #endif
     __asm__ __volatile__ ("add al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(e));
 
@@ -1373,7 +1361,7 @@ static void add_a_h(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("ADD A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
+    os_print("ADD A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
     #endif
     __asm__ __volatile__ ("add al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(h));
 
@@ -1391,7 +1379,7 @@ static void add_a_l(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("ADD A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
+    os_print("ADD A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
     #endif
     __asm__ __volatile__ ("add al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(l));
 
@@ -1409,7 +1397,7 @@ static void add_a__hl(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("ADD A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
+    os_print("ADD A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
     #endif
     __asm__ __volatile__ ("add al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(mem_readb(hl)));
 
@@ -1427,7 +1415,7 @@ static void add_a_a(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("ADD A, A: A == 0x%02X\n", (unsigned)a);
+    os_print("ADD A, A: A == 0x%02X\n", (unsigned)a);
     #endif
     __asm__ __volatile__ ("add al,al; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a));
 
@@ -1445,7 +1433,7 @@ static void adc_a_b(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("ADC A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
+    os_print("ADC A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
     #endif
     if (f & X86_CF)
         __asm__ __volatile__ ("stc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(b));
@@ -1466,7 +1454,7 @@ static void adc_a_c(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("ADC A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
+    os_print("ADC A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
     #endif
     if (f & X86_CF)
         __asm__ __volatile__ ("stc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(c));
@@ -1487,7 +1475,7 @@ static void adc_a_d(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("ADC A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
+    os_print("ADC A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
     #endif
     if (f & X86_CF)
         __asm__ __volatile__ ("stc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(d));
@@ -1508,7 +1496,7 @@ static void adc_a_e(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("ADC A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
+    os_print("ADC A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
     #endif
     if (f & X86_CF)
         __asm__ __volatile__ ("stc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(e));
@@ -1529,7 +1517,7 @@ static void adc_a_h(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("ADC A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
+    os_print("ADC A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
     #endif
     if (f & X86_CF)
         __asm__ __volatile__ ("stc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(h));
@@ -1550,7 +1538,7 @@ static void adc_a_l(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("ADC A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
+    os_print("ADC A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
     #endif
     if (f & X86_CF)
         __asm__ __volatile__ ("stc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(l));
@@ -1571,7 +1559,7 @@ static void adc_a__hl(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("ADC A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
+    os_print("ADC A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
     #endif
     if (f & X86_CF)
         __asm__ __volatile__ ("stc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(mem_readb(hl)));
@@ -1592,7 +1580,7 @@ static void adc_a_a(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("ADC A, A: A == 0x%02X\n", (unsigned)a);
+    os_print("ADC A, A: A == 0x%02X\n", (unsigned)a);
     #endif
     if (f & X86_CF)
         __asm__ __volatile__ ("stc; adc al,al; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a));
@@ -1613,7 +1601,7 @@ static void sub_a_b(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("SUB A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
+    os_print("SUB A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
     #endif
     __asm__ __volatile__ ("sub al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(b));
 
@@ -1631,7 +1619,7 @@ static void sub_a_c(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("SUB A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
+    os_print("SUB A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
     #endif
     __asm__ __volatile__ ("sub al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(c));
 
@@ -1649,7 +1637,7 @@ static void sub_a_d(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("SUB A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
+    os_print("SUB A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
     #endif
     __asm__ __volatile__ ("sub al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(d));
 
@@ -1667,7 +1655,7 @@ static void sub_a_e(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("SUB A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
+    os_print("SUB A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
     #endif
     __asm__ __volatile__ ("sub al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(e));
 
@@ -1685,7 +1673,7 @@ static void sub_a_h(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("SUB A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
+    os_print("SUB A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
     #endif
     __asm__ __volatile__ ("sub al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(h));
 
@@ -1703,7 +1691,7 @@ static void sub_a_l(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("SUB A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
+    os_print("SUB A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
     #endif
     __asm__ __volatile__ ("sub al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(l));
 
@@ -1721,7 +1709,7 @@ static void sub_a__hl(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("SUB A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
+    os_print("SUB A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
     #endif
     __asm__ __volatile__ ("sub al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(mem_readb(hl)));
 
@@ -1737,7 +1725,7 @@ static void sub_a__hl(void)
 static void sub_a_a(void)
 {
     #ifdef DUMP
-    printf("SUB A, A: A == 0x%02X\n", (unsigned)a);
+    os_print("SUB A, A: A == 0x%02X\n", (unsigned)a);
     #endif
 
     a = 0;
@@ -1749,7 +1737,7 @@ static void sbc_a_b(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("SBC A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
+    os_print("SBC A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
     #endif
     if (f & FLAG_CRY)
         __asm__ __volatile__ ("stc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(b));
@@ -1770,7 +1758,7 @@ static void sbc_a_c(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("SBC A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
+    os_print("SBC A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
     #endif
     if (f & FLAG_CRY)
         __asm__ __volatile__ ("stc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(c));
@@ -1791,7 +1779,7 @@ static void sbc_a_d(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("SBC A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
+    os_print("SBC A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
     #endif
     if (f & FLAG_CRY)
         __asm__ __volatile__ ("stc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(d));
@@ -1812,7 +1800,7 @@ static void sbc_a_e(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("SBC A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
+    os_print("SBC A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
     #endif
     if (f & FLAG_CRY)
         __asm__ __volatile__ ("stc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(e));
@@ -1833,7 +1821,7 @@ static void sbc_a_h(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("SBC A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
+    os_print("SBC A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
     #endif
     if (f & FLAG_CRY)
         __asm__ __volatile__ ("stc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(h));
@@ -1854,7 +1842,7 @@ static void sbc_a_l(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("SBC A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
+    os_print("SBC A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
     #endif
     if (f & FLAG_CRY)
         __asm__ __volatile__ ("stc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(l));
@@ -1875,7 +1863,7 @@ static void sbc_a__hl(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("SBC A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
+    os_print("SBC A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
     #endif
     if (f & FLAG_CRY)
         __asm__ __volatile__ ("stc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(mem_readb(hl)));
@@ -1894,7 +1882,7 @@ static void sbc_a__hl(void)
 static void sbc_a_a(void)
 {
     #ifdef DUMP
-    printf("SUB A, A: A == 0x%02X\n", (unsigned)a);
+    os_print("SUB A, A: A == 0x%02X\n", (unsigned)a);
     #endif
 
     if (f & FLAG_CRY)
@@ -1912,7 +1900,7 @@ static void sbc_a_a(void)
 static void and_a_b(void)
 {
     #ifdef DUMP
-    printf("AND A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
+    os_print("AND A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
     #endif
 
     a &= b;
@@ -1925,7 +1913,7 @@ static void and_a_b(void)
 static void and_a_c(void)
 {
     #ifdef DUMP
-    printf("AND A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
+    os_print("AND A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
     #endif
 
     a &= c;
@@ -1938,7 +1926,7 @@ static void and_a_c(void)
 static void and_a_d(void)
 {
     #ifdef DUMP
-    printf("AND A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
+    os_print("AND A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
     #endif
 
     a &= d;
@@ -1951,7 +1939,7 @@ static void and_a_d(void)
 static void and_a_e(void)
 {
     #ifdef DUMP
-    printf("AND A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
+    os_print("AND A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
     #endif
 
     a &= e;
@@ -1964,7 +1952,7 @@ static void and_a_e(void)
 static void and_a_h(void)
 {
     #ifdef DUMP
-    printf("AND A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
+    os_print("AND A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
     #endif
 
     a &= h;
@@ -1977,7 +1965,7 @@ static void and_a_h(void)
 static void and_a_l(void)
 {
     #ifdef DUMP
-    printf("AND A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
+    os_print("AND A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
     #endif
 
     a &= l;
@@ -1990,7 +1978,7 @@ static void and_a_l(void)
 static void and_a__hl(void)
 {
     #ifdef DUMP
-    printf("AND A, (HL): A == 0x%02X; HL == 0x%42X\n", (unsigned)a, (unsigned)hl);
+    os_print("AND A, (HL): A == 0x%02X; HL == 0x%42X\n", (unsigned)a, (unsigned)hl);
     #endif
 
     a &= mem_readb(hl);
@@ -2003,7 +1991,7 @@ static void and_a__hl(void)
 static void and_a_a(void)
 {
     #ifdef DUMP
-    printf("AND A, A: A == 0x%02X\n", (unsigned)a);
+    os_print("AND A, A: A == 0x%02X\n", (unsigned)a);
     #endif
 
     if (a)
@@ -2015,7 +2003,7 @@ static void and_a_a(void)
 static void xor_a_b(void)
 {
     #ifdef DUMP
-    printf("XOR A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
+    os_print("XOR A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
     #endif
 
     a ^= b;
@@ -2025,7 +2013,7 @@ static void xor_a_b(void)
 static void xor_a_c(void)
 {
     #ifdef DUMP
-    printf("XOR A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
+    os_print("XOR A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
     #endif
 
     a ^= c;
@@ -2035,7 +2023,7 @@ static void xor_a_c(void)
 static void xor_a_d(void)
 {
     #ifdef DUMP
-    printf("XOR A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
+    os_print("XOR A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
     #endif
 
     a ^= d;
@@ -2045,7 +2033,7 @@ static void xor_a_d(void)
 static void xor_a_e(void)
 {
     #ifdef DUMP
-    printf("XOR A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
+    os_print("XOR A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
     #endif
 
     a ^= e;
@@ -2055,7 +2043,7 @@ static void xor_a_e(void)
 static void xor_a_h(void)
 {
     #ifdef DUMP
-    printf("XOR A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
+    os_print("XOR A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
     #endif
 
     a ^= h;
@@ -2065,7 +2053,7 @@ static void xor_a_h(void)
 static void xor_a_l(void)
 {
     #ifdef DUMP
-    printf("XOR A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
+    os_print("XOR A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
     #endif
 
     a ^= l;
@@ -2075,7 +2063,7 @@ static void xor_a_l(void)
 static void xor_a__hl(void)
 {
     #ifdef DUMP
-    printf("XOR A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
+    os_print("XOR A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
     #endif
 
     a ^= mem_readb(hl);
@@ -2085,7 +2073,7 @@ static void xor_a__hl(void)
 static void xor_a_a(void)
 {
     #ifdef DUMP
-    printf("XOR A, A: A == 0x%02X\n", (unsigned)a);
+    os_print("XOR A, A: A == 0x%02X\n", (unsigned)a);
     #endif
 
     a = 0;
@@ -2095,7 +2083,7 @@ static void xor_a_a(void)
 static void or_a_b(void)
 {
     #ifdef DUMP
-    printf("OR A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
+    os_print("OR A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
     #endif
 
     a |= b;
@@ -2105,7 +2093,7 @@ static void or_a_b(void)
 static void or_a_c(void)
 {
     #ifdef DUMP
-    printf("OR A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
+    os_print("OR A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
     #endif
 
     a |= c;
@@ -2115,7 +2103,7 @@ static void or_a_c(void)
 static void or_a_d(void)
 {
     #ifdef DUMP
-    printf("OR A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
+    os_print("OR A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
     #endif
 
     a |= d;
@@ -2125,7 +2113,7 @@ static void or_a_d(void)
 static void or_a_e(void)
 {
     #ifdef DUMP
-    printf("OR A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
+    os_print("OR A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
     #endif
 
     a |= e;
@@ -2135,7 +2123,7 @@ static void or_a_e(void)
 static void or_a_h(void)
 {
     #ifdef DUMP
-    printf("OR A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
+    os_print("OR A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
     #endif
 
     a |= h;
@@ -2145,7 +2133,7 @@ static void or_a_h(void)
 static void or_a_l(void)
 {
     #ifdef DUMP
-    printf("OR A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
+    os_print("OR A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
     #endif
 
     a |= l;
@@ -2155,7 +2143,7 @@ static void or_a_l(void)
 static void or_a__hl(void)
 {
     #ifdef DUMP
-    printf("OR A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
+    os_print("OR A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
     #endif
 
     a |= mem_readb(hl);
@@ -2165,7 +2153,7 @@ static void or_a__hl(void)
 static void or_a_a(void)
 {
     #ifdef DUMP
-    printf("OR A, A: A == 0x%02X\n", (unsigned)a);
+    os_print("OR A, A: A == 0x%02X\n", (unsigned)a);
     #endif
 
     f = a ? 0 : FLAG_ZERO;
@@ -2176,7 +2164,7 @@ static void cp_a_b(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("CP A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
+    os_print("CP A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
     #endif
 
     f = FLAG_SUB;
@@ -2194,7 +2182,7 @@ static void cp_a_c(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("CP A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
+    os_print("CP A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
     #endif
 
     f = FLAG_SUB;
@@ -2212,7 +2200,7 @@ static void cp_a_d(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("CP A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
+    os_print("CP A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
     #endif
 
     f = FLAG_SUB;
@@ -2230,7 +2218,7 @@ static void cp_a_e(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("CP A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
+    os_print("CP A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
     #endif
 
     f = FLAG_SUB;
@@ -2248,7 +2236,7 @@ static void cp_a_h(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("CP A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
+    os_print("CP A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
     #endif
 
     f = FLAG_SUB;
@@ -2266,7 +2254,7 @@ static void cp_a_l(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("CP A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
+    os_print("CP A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
     #endif
 
     f = FLAG_SUB;
@@ -2284,7 +2272,7 @@ static void cp_a__hl(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("CP A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
+    os_print("CP A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
     #endif
 
     f = FLAG_SUB;
@@ -2300,7 +2288,7 @@ static void cp_a__hl(void)
 static void cp_a_a(void)
 {
     #ifdef DUMP
-    printf("CP A, A: A == 0x%02X\n", (unsigned)a);
+    os_print("CP A, A: A == 0x%02X\n", (unsigned)a);
     #endif
 
     f = FLAG_SUB | FLAG_ZERO;
@@ -2311,14 +2299,14 @@ static void retnz(void)
     if (!(f & FLAG_ZERO))
     {
         #ifdef DUMP
-        printf("RETNZ, returning\n");
+        os_print("RETNZ, returning\n");
         #endif
         ret();
     }
     else
     {
         #ifdef DUMP
-        printf("RETNZ, staying\n");
+        os_print("RETNZ, staying\n");
         #endif
     }
 }
@@ -2326,7 +2314,7 @@ static void retnz(void)
 static void pop_bc(void)
 {
     #ifdef DUMP
-    printf("POP BC: BC == 0x%04X\n", bc);
+    os_print("POP BC: BC == 0x%04X\n", bc);
     #endif
     bc = pop();
 }
@@ -2336,14 +2324,14 @@ static void jpnz(void)
     if (!(f & FLAG_ZERO))
     {
         #ifdef DUMP
-        printf("JPNZ, branching\n");
+        os_print("JPNZ, branching\n");
         #endif
         jp();
     }
     else
     {
         #ifdef DUMP
-        printf("JPNZ, staying\n");
+        os_print("JPNZ, staying\n");
         #endif
         ip += 2;
     }
@@ -2352,7 +2340,7 @@ static void jpnz(void)
 static void jp(void)
 {
     #ifdef DUMP
-    printf("JP 0x%04X: IP == 0x%04X\n", (unsigned)nn, (unsigned)(ip - 1));
+    os_print("JP 0x%04X: IP == 0x%04X\n", (unsigned)nn, (unsigned)(ip - 1));
     #endif
     ip = nn;
 }
@@ -2362,14 +2350,14 @@ static void callnz(void)
     if (!(f & FLAG_ZERO))
     {
         #ifdef DUMP
-        printf("CALLNZ, calling\n");
+        os_print("CALLNZ, calling\n");
         #endif
         call();
     }
     else
     {
         #ifdef DUMP
-        printf("CALLNZ, staying\n");
+        os_print("CALLNZ, staying\n");
         #endif
         ip += 2;
     }
@@ -2378,7 +2366,7 @@ static void callnz(void)
 static void push_bc(void)
 {
     #ifdef DUMP
-    printf("PUSH BC: BC == 0x%04X\n", bc);
+    os_print("PUSH BC: BC == 0x%04X\n", bc);
     #endif
     push(bc);
 }
@@ -2388,7 +2376,7 @@ static void add_a_s(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("ADD A, 0x%02X: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
+    os_print("ADD A, 0x%02X: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
     #endif
     __asm__ __volatile__ ("add al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(mem_readb(ip++)));
 
@@ -2404,11 +2392,11 @@ static void add_a_s(void)
 static void rst0x00(void)
 {
     #ifdef DUMP
-    printf("RST $00: IP == 0x%04X\n", (unsigned)ip - 1);
+    os_print("RST $00: IP == 0x%04X\n", (unsigned)ip - 1);
     #endif
     #ifdef HALT_ON_RST
-    printf("RST – halting\n");
-    exit(1);
+    os_print("RST – halting\n");
+    exit_err();
     #endif
     push(ip);
     ip = 0x0000;
@@ -2419,14 +2407,14 @@ static void retz(void)
     if (f & FLAG_ZERO)
     {
         #ifdef DUMP
-        printf("RETZ, returning\n");
+        os_print("RETZ, returning\n");
         #endif
         ret();
     }
     else
     {
         #ifdef DUMP
-        printf("RETZ, staying\n");
+        os_print("RETZ, staying\n");
         #endif
     }
 }
@@ -2438,7 +2426,7 @@ static void ret(void)
     #endif
     ip = pop();
     #ifdef DUMP
-    printf("RET: 0x%04X → 0x%04X\n", (unsigned)old_ip, (unsigned)ip);
+    os_print("RET: 0x%04X → 0x%04X\n", (unsigned)old_ip, (unsigned)ip);
     #endif
 }
 
@@ -2447,14 +2435,14 @@ static void jpz(void)
     if (f & FLAG_ZERO)
     {
         #ifdef DUMP
-        printf("JPZ, branching\n");
+        os_print("JPZ, branching\n");
         #endif
         jp();
     }
     else
     {
         #ifdef DUMP
-        printf("JPZ, staying\n");
+        os_print("JPZ, staying\n");
         #endif
         ip += 2;
     }
@@ -2469,56 +2457,56 @@ static void prefix0xCB(void)
     {
         case 0x01: // BIT
             #ifdef DUMP
-            printf("BIT %i, ", (mem_readb(ip - 1) & 0x38) >> 3);
+            os_print("BIT %i, ", (mem_readb(ip - 1) & 0x38) >> 3);
             #endif
             f &= FLAG_CRY;
             switch (reg)
             {
                 case 0:
                     #ifdef DUMP
-                    printf("B: B == 0x%02X\n", (unsigned)b);
+                    os_print("B: B == 0x%02X\n", (unsigned)b);
                     #endif
                     f |= (b & bval) ? 0 : FLAG_ZERO;
                     break;
                 case 1:
                     #ifdef DUMP
-                    printf("C: C == 0x%02X\n", (unsigned)c);
+                    os_print("C: C == 0x%02X\n", (unsigned)c);
                     #endif
                     f |= (c & bval) ? 0 : FLAG_ZERO;
                     break;
                 case 2:
                     #ifdef DUMP
-                    printf("D: D == 0x%02X\n", (unsigned)d);
+                    os_print("D: D == 0x%02X\n", (unsigned)d);
                     #endif
                     f |= (d & bval) ? 0 : FLAG_ZERO;
                     break;
                 case 3:
                     #ifdef DUMP
-                    printf("E: E == 0x%02X\n", (unsigned)e);
+                    os_print("E: E == 0x%02X\n", (unsigned)e);
                     #endif
                     f |= (e & bval) ? 0 : FLAG_ZERO;
                     break;
                 case 4:
                     #ifdef DUMP
-                    printf("H: H == 0x%02X\n", (unsigned)h);
+                    os_print("H: H == 0x%02X\n", (unsigned)h);
                     #endif
                     f |= (h & bval) ? 0 : FLAG_ZERO;
                     break;
                 case 5:
                     #ifdef DUMP
-                    printf("L: L == 0x%02X\n", (unsigned)l);
+                    os_print("L: L == 0x%02X\n", (unsigned)l);
                     #endif
                     f |= (l & bval) ? 0 : FLAG_ZERO;
                     break;
                 case 6:
                     #ifdef DUMP
-                    printf("(HL): HL == 0x%04X\n", (unsigned)hl);
+                    os_print("(HL): HL == 0x%04X\n", (unsigned)hl);
                     #endif
                     f |= (mem_readb(hl) & bval) ? 0 : FLAG_ZERO;
                     break;
                 case 7:
                     #ifdef DUMP
-                    printf("A: A == 0x%02X\n", (unsigned)a);
+                    os_print("A: A == 0x%02X\n", (unsigned)a);
                     #endif
                     f |= (a & bval) ? 0 : FLAG_ZERO;
                     break;
@@ -2526,55 +2514,55 @@ static void prefix0xCB(void)
             break;
         case 0x02: // RES
             #ifdef DUMP
-            printf("RES %i, ", (mem_readb(ip - 1) & 0x38) >> 3);
+            os_print("RES %i, ", (mem_readb(ip - 1) & 0x38) >> 3);
             #endif
             switch (reg)
             {
                 case 0:
                     #ifdef DUMP
-                    printf("B: B == 0x%02X\n", (unsigned)b);
+                    os_print("B: B == 0x%02X\n", (unsigned)b);
                     #endif
                     b &= ~bval;
                     break;
                 case 1:
                     #ifdef DUMP
-                    printf("C: C == 0x%02X\n", (unsigned)c);
+                    os_print("C: C == 0x%02X\n", (unsigned)c);
                     #endif
                     c &= ~bval;
                     break;
                 case 2:
                     #ifdef DUMP
-                    printf("D: D == 0x%02X\n", (unsigned)d);
+                    os_print("D: D == 0x%02X\n", (unsigned)d);
                     #endif
                     d &= ~bval;
                     break;
                 case 3:
                     #ifdef DUMP
-                    printf("E: E == 0x%02X\n", (unsigned)e);
+                    os_print("E: E == 0x%02X\n", (unsigned)e);
                     #endif
                     e &= ~bval;
                     break;
                 case 4:
                     #ifdef DUMP
-                    printf("H: H == 0x%02X\n", (unsigned)h);
+                    os_print("H: H == 0x%02X\n", (unsigned)h);
                     #endif
                     h &= ~bval;
                     break;
                 case 5:
                     #ifdef DUMP
-                    printf("L: L == 0x%02X\n", (unsigned)l);
+                    os_print("L: L == 0x%02X\n", (unsigned)l);
                     #endif
                     l &= ~bval;
                     break;
                 case 6:
                     #ifdef DUMP
-                    printf("(HL): HL == 0x%04X\n", (unsigned)hl);
+                    os_print("(HL): HL == 0x%04X\n", (unsigned)hl);
                     #endif
                     mem_writeb(hl, mem_readb(hl) & ~bval);
                     break;
                 case 7:
                     #ifdef DUMP
-                    printf("A: A == 0x%02X\n", (unsigned)a);
+                    os_print("A: A == 0x%02X\n", (unsigned)a);
                     #endif
                     a &= ~bval;
                     break;
@@ -2582,55 +2570,55 @@ static void prefix0xCB(void)
             break;
         case 0x03: // SET
             #ifdef DUMP
-            printf("SET %i, ", (mem_readb(ip - 1) & 0x38) >> 3);
+            os_print("SET %i, ", (mem_readb(ip - 1) & 0x38) >> 3);
             #endif
             switch (reg)
             {
                 case 0:
                     #ifdef DUMP
-                    printf("B: B == 0x%02X\n", (unsigned)b);
+                    os_print("B: B == 0x%02X\n", (unsigned)b);
                     #endif
                     b |= bval;
                     break;
                 case 1:
                     #ifdef DUMP
-                    printf("C: C == 0x%02X\n", (unsigned)c);
+                    os_print("C: C == 0x%02X\n", (unsigned)c);
                     #endif
                     c |= bval;
                     break;
                 case 2:
                     #ifdef DUMP
-                    printf("D: D == 0x%02X\n", (unsigned)d);
+                    os_print("D: D == 0x%02X\n", (unsigned)d);
                     #endif
                     d |= bval;
                     break;
                 case 3:
                     #ifdef DUMP
-                    printf("E: E == 0x%02X\n", (unsigned)e);
+                    os_print("E: E == 0x%02X\n", (unsigned)e);
                     #endif
                     e |= bval;
                     break;
                 case 4:
                     #ifdef DUMP
-                    printf("H: H == 0x%02X\n", (unsigned)h);
+                    os_print("H: H == 0x%02X\n", (unsigned)h);
                     #endif
                     h |= bval;
                     break;
                 case 5:
                     #ifdef DUMP
-                    printf("L: L == 0x%02X\n", (unsigned)l);
+                    os_print("L: L == 0x%02X\n", (unsigned)l);
                     #endif
                     l |= bval;
                     break;
                 case 6:
                     #ifdef DUMP
-                    printf("(HL): HL == 0x%04X\n", (unsigned)hl);
+                    os_print("(HL): HL == 0x%04X\n", (unsigned)hl);
                     #endif
                     mem_writeb(hl, mem_readb(hl) | bval);
                     break;
                 case 7:
                     #ifdef DUMP
-                    printf("A: A == 0x%02X\n", (unsigned)a);
+                    os_print("A: A == 0x%02X\n", (unsigned)a);
                     #endif
                     a |= bval;
                     break;
@@ -2639,8 +2627,8 @@ static void prefix0xCB(void)
         default:
             if (handle0xCB[(int)mem_readb(ip - 1)] == NULL)
             {
-                printf("Unknown opcode 0x%02X, prefixed by 0xCB\n", (unsigned)mem_readb(ip - 1));
-                exit(1);
+                os_print("Unknown opcode 0x%02X, prefixed by 0xCB\n", (unsigned)mem_readb(ip - 1));
+                exit_err();
             }
 
             handle0xCB[(int)mem_readb(ip - 1)]();
@@ -2652,14 +2640,14 @@ static void callz(void)
     if (f & FLAG_ZERO)
     {
         #ifdef DUMP
-        printf("CALLZ, calling\n");
+        os_print("CALLZ, calling\n");
         #endif
         call();
     }
     else
     {
         #ifdef DUMP
-        printf("CALLZ, staying\n");
+        os_print("CALLZ, staying\n");
         #endif
         ip += 2;
     }
@@ -2668,7 +2656,7 @@ static void callz(void)
 static void call(void)
 {
     #ifdef DUMP
-    printf("CALL 0x%04X: IP == 0x%04X\n", (unsigned)nn, (unsigned)(ip - 1));
+    os_print("CALL 0x%04X: IP == 0x%04X\n", (unsigned)nn, (unsigned)(ip - 1));
     #endif
     push(ip + 2);
     ip = nn;
@@ -2679,7 +2667,7 @@ static void adc_a_s(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("ADC A, 0x%02X: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
+    os_print("ADC A, 0x%02X: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
     #endif
     if (f & FLAG_CRY)
         __asm__ __volatile__ ("stc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(mem_readb(ip++)));
@@ -2698,11 +2686,11 @@ static void adc_a_s(void)
 static void rst0x08(void)
 {
     #ifdef DUMP
-    printf("RST $08: IP == 0x%04X\n", (unsigned)ip - 1);
+    os_print("RST $08: IP == 0x%04X\n", (unsigned)ip - 1);
     #endif
     #ifdef HALT_ON_RST
-    printf("RST – halting\n");
-    exit(1);
+    os_print("RST – halting\n");
+    exit_err();
     #endif
     push(ip);
     ip = 0x0008;
@@ -2713,14 +2701,14 @@ static void retnc(void)
     if (!(f & FLAG_CRY))
     {
         #ifdef DUMP
-        printf("RETNC, returning\n");
+        os_print("RETNC, returning\n");
         #endif
         ret();
     }
     else
     {
         #ifdef DUMP
-        printf("RETNC, staying\n");
+        os_print("RETNC, staying\n");
         #endif
     }
 }
@@ -2728,7 +2716,7 @@ static void retnc(void)
 static void pop_de(void)
 {
     #ifdef DUMP
-    printf("POP DE: DE == 0x%04X\n", (unsigned)de);
+    os_print("POP DE: DE == 0x%04X\n", (unsigned)de);
     #endif
     de = pop();
 }
@@ -2738,14 +2726,14 @@ static void jpnc(void)
     if (!(f & FLAG_CRY))
     {
         #ifdef DUMP
-        printf("JPNC, branching\n");
+        os_print("JPNC, branching\n");
         #endif
         jp();
     }
     else
     {
         #ifdef DUMP
-        printf("JPNC, staying\n");
+        os_print("JPNC, staying\n");
         #endif
         ip += 2;
     }
@@ -2756,14 +2744,14 @@ static void callnc(void)
     if (!(f & FLAG_CRY))
     {
         #ifdef DUMP
-        printf("CALLNC, calling\n");
+        os_print("CALLNC, calling\n");
         #endif
         call();
     }
     else
     {
         #ifdef DUMP
-        printf("CALLNC, staying\n");
+        os_print("CALLNC, staying\n");
         #endif
         ip += 2;
     }
@@ -2772,7 +2760,7 @@ static void callnc(void)
 static void push_de(void)
 {
     #ifdef DUMP
-    printf("PUSH DE: DE == 0x%04X\n", (unsigned)de);
+    os_print("PUSH DE: DE == 0x%04X\n", (unsigned)de);
     #endif
     push(de);
 }
@@ -2782,7 +2770,7 @@ static void sub_a_s(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("SUB A, 0x%02X: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
+    os_print("SUB A, 0x%02X: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
     #endif
     __asm__ __volatile__ ("sub al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(mem_readb(ip++)));
 
@@ -2798,11 +2786,11 @@ static void sub_a_s(void)
 static void ret0x10(void)
 {
     #ifdef DUMP
-    printf("RST $10: IP == 0x%04X\n", (unsigned)ip - 1);
+    os_print("RST $10: IP == 0x%04X\n", (unsigned)ip - 1);
     #endif
     #ifdef HALT_ON_RST
-    printf("RST – halting\n");
-    exit(1);
+    os_print("RST – halting\n");
+    exit_err();
     #endif
     push(ip);
     ip = 0x0010;
@@ -2813,14 +2801,14 @@ static void retc(void)
     if (f & FLAG_CRY)
     {
         #ifdef DUMP
-        printf("RETC, returning\n");
+        os_print("RETC, returning\n");
         #endif
         ret();
     }
     else
     {
         #ifdef DUMP
-        printf("RETC, staying\n");
+        os_print("RETC, staying\n");
         #endif
     }
 }
@@ -2828,7 +2816,7 @@ static void retc(void)
 static void reti(void)
 {
     #ifdef DUMP
-    printf("RETI\n");
+    os_print("RETI\n");
     #endif
 
     want_ints_to_be = 1;
@@ -2841,14 +2829,14 @@ static void jpc(void)
     if (f & FLAG_CRY)
     {
         #ifdef DUMP
-        printf("JPC, branching\n");
+        os_print("JPC, branching\n");
         #endif
         jp();
     }
     else
     {
         #ifdef DUMP
-        printf("JPC, staying\n");
+        os_print("JPC, staying\n");
         #endif
         ip += 2;
     }
@@ -2859,14 +2847,14 @@ static void callc(void)
     if (f & FLAG_CRY)
     {
         #ifdef DUMP
-        printf("CALLC, calling\n");
+        os_print("CALLC, calling\n");
         #endif
         call();
     }
     else
     {
         #ifdef DUMP
-        printf("CALLC, staying\n");
+        os_print("CALLC, staying\n");
         #endif
         ip += 2;
     }
@@ -2877,7 +2865,7 @@ static void sbc_a_s(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("SBC A, 0x%02X: A == 0x%02X\n", (unsigned)a, (unsigned)mem_readb(ip));
+    os_print("SBC A, 0x%02X: A == 0x%02X\n", (unsigned)a, (unsigned)mem_readb(ip));
     #endif
     if (f & FLAG_CRY)
         __asm__ __volatile__ ("stc; sbb al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(mem_readb(ip++)));
@@ -2896,11 +2884,11 @@ static void sbc_a_s(void)
 static void rst0x18(void)
 {
     #ifdef DUMP
-    printf("RST $18: IP == 0x%04X\n", (unsigned)ip - 1);
+    os_print("RST $18: IP == 0x%04X\n", (unsigned)ip - 1);
     #endif
     #ifdef HALT_ON_RST
-    printf("RST – halting\n");
-    exit(1);
+    os_print("RST – halting\n");
+    exit_err();
     #endif
     push(ip);
     ip = 0x0018;
@@ -2909,7 +2897,7 @@ static void rst0x18(void)
 static void ld__ffn_a(void)
 {
     #ifdef DUMP
-    printf("LD ($FF00 + 0x%02X), A: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
+    os_print("LD ($FF00 + 0x%02X), A: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
     #endif
     mem_writeb(0xFF00 + mem_readb(ip++), a);
 }
@@ -2917,7 +2905,7 @@ static void ld__ffn_a(void)
 static void pop_hl(void)
 {
     #ifdef DUMP
-    printf("POP HL: HL == 0x%04X\n", (unsigned)hl);
+    os_print("POP HL: HL == 0x%04X\n", (unsigned)hl);
     #endif
     hl = pop();
 }
@@ -2925,7 +2913,7 @@ static void pop_hl(void)
 static void ld__ffc_a(void)
 {
     #ifdef DUMP
-    printf("LD ($FF00 + C), A: C == 0x%02X; A == 0x%02X\n", (unsigned)c, (unsigned)a);
+    os_print("LD ($FF00 + C), A: C == 0x%02X; A == 0x%02X\n", (unsigned)c, (unsigned)a);
     #endif
     mem_writeb(0xFF00 + c, a);
 }
@@ -2933,7 +2921,7 @@ static void ld__ffc_a(void)
 static void push_hl(void)
 {
     #ifdef DUMP
-    printf("PUSH HL: HL == 0x%04X\n", (unsigned)hl);
+    os_print("PUSH HL: HL == 0x%04X\n", (unsigned)hl);
     #endif
     push(hl);
 }
@@ -2941,7 +2929,7 @@ static void push_hl(void)
 static void and_a_s(void)
 {
     #ifdef DUMP
-    printf("AND A, 0x%02X: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
+    os_print("AND A, 0x%02X: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
     #endif
 
     a &= mem_readb(ip++);
@@ -2954,11 +2942,11 @@ static void and_a_s(void)
 static void rst0x20(void)
 {
     #ifdef DUMP
-    printf("RST $20: IP == 0x%04X\n", (unsigned)ip - 1);
+    os_print("RST $20: IP == 0x%04X\n", (unsigned)ip - 1);
     #endif
     #ifdef HALT_ON_RST
-    printf("RST – halting\n");
-    exit(1);
+    os_print("RST – halting\n");
+    exit_err();
     #endif
     push(ip);
     ip = 0x0020;
@@ -2970,7 +2958,7 @@ static void add_sp_s(void)
     int result = sp + add;
 
     #ifdef DUMP
-    printf("ADD SP, %i: SP == 0x%04X\n", add, sp);
+    os_print("ADD SP, %i: SP == 0x%04X\n", add, sp);
     #endif
 
     f = 0;
@@ -2986,7 +2974,7 @@ static void add_sp_s(void)
 static void jp__hl(void)
 {
     #ifdef DUMP
-    printf("JP (HL): HL == 0x%04X; IP == 0x%04X\n", (unsigned)hl, (unsigned)ip);
+    os_print("JP (HL): HL == 0x%04X; IP == 0x%04X\n", (unsigned)hl, (unsigned)ip);
     #endif
     ip = hl;
 }
@@ -2994,7 +2982,7 @@ static void jp__hl(void)
 static void ld__nn_a(void)
 {
     #ifdef DUMP
-    printf("LD (0x%04X), A: A == 0x%02X\n", (unsigned)nn, (unsigned)a);
+    os_print("LD (0x%04X), A: A == 0x%02X\n", (unsigned)nn, (unsigned)a);
     #endif
     mem_writeb(nn, a);
     ip += 2;
@@ -3003,7 +2991,7 @@ static void ld__nn_a(void)
 static void xor_a_s(void)
 {
     #ifdef DUMP
-    printf("XOR A, 0x%02X: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
+    os_print("XOR A, 0x%02X: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
     #endif
 
     a ^= mem_readb(ip++);
@@ -3013,11 +3001,11 @@ static void xor_a_s(void)
 static void rst0x28(void)
 {
     #ifdef DUMP
-    printf("RST $28: IP == 0x%04X\n", (unsigned)ip - 1);
+    os_print("RST $28: IP == 0x%04X\n", (unsigned)ip - 1);
     #endif
     #ifdef HALT_ON_RST
-    printf("RST – halting\n");
-    exit(1);
+    os_print("RST – halting\n");
+    exit_err();
     #endif
     push(ip);
     ip = 0x0028;
@@ -3026,7 +3014,7 @@ static void rst0x28(void)
 static void ld_a__ffn(void)
 {
     #ifdef DUMP
-    printf("LD A, ($FF00 + 0x%02X): A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
+    os_print("LD A, ($FF00 + 0x%02X): A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
     #endif
     a = mem_readb(0xFF00 + (unsigned)mem_readb(ip++));
 }
@@ -3034,7 +3022,7 @@ static void ld_a__ffn(void)
 static void pop_af(void)
 {
     #ifdef DUMP
-    printf("POP AF: AF == 0x%04X\n", af);
+    os_print("POP AF: AF == 0x%04X\n", af);
     #endif
     af = pop();
 }
@@ -3042,7 +3030,7 @@ static void pop_af(void)
 static void ld_a__ffc(void)
 {
     #ifdef DUMP
-    printf("LD A, ($FF00 + C): A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
+    os_print("LD A, ($FF00 + C): A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
     #endif
     a = mem_readb(0xFF00 + (unsigned)c);
 }
@@ -3050,7 +3038,7 @@ static void ld_a__ffc(void)
 static void di_(void)
 {
     #ifdef DUMP
-    printf("DI: Interrupts %s\n", ints_enabled ? "enabled" : "disabled");
+    os_print("DI: Interrupts %s\n", ints_enabled ? "enabled" : "disabled");
     #endif
     want_ints_to_be = 0;
 }
@@ -3058,7 +3046,7 @@ static void di_(void)
 static void push_af(void)
 {
     #ifdef DUMP
-    printf("PUSH AF: AF == 0x%04X\n", (unsigned)af);
+    os_print("PUSH AF: AF == 0x%04X\n", (unsigned)af);
     #endif
     push(af);
 }
@@ -3066,7 +3054,7 @@ static void push_af(void)
 static void or_a_s(void)
 {
     #ifdef DUMP
-    printf("OR A, 0x%02X: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
+    os_print("OR A, 0x%02X: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
     #endif
 
     a |= mem_readb(ip++);
@@ -3076,11 +3064,11 @@ static void or_a_s(void)
 static void rst0x30(void)
 {
     #ifdef DUMP
-    printf("RST $30: IP == 0x%04X\n", (unsigned)ip - 1);
+    os_print("RST $30: IP == 0x%04X\n", (unsigned)ip - 1);
     #endif
     #ifdef HALT_ON_RST
-    printf("RST – halting\n");
-    exit(1);
+    os_print("RST – halting\n");
+    exit_err();
     #endif
     push(ip);
     ip = 0x0030;
@@ -3091,7 +3079,7 @@ static void ld_hl_spn(void)
     int result;
 
     #ifdef DUMP
-    printf("LD HL, SP + %i: HL == 0x%04X; SP == 0x%04X\n", (int)(signed char)mem_readb(ip), (unsigned)hl, (unsigned)sp);
+    os_print("LD HL, SP + %i: HL == 0x%04X; SP == 0x%04X\n", (int)(signed char)mem_readb(ip), (unsigned)hl, (unsigned)sp);
     #endif
 
     result = sp + (int)(signed char)mem_readb(ip++);
@@ -3109,7 +3097,7 @@ static void ld_hl_spn(void)
 static void ld_sp_hl(void)
 {
     #ifdef DUMP
-    printf("LD SP, HL: SP == 0x%04X; HL == 0x%04X\n", (unsigned)sp, (unsigned)hl);
+    os_print("LD SP, HL: SP == 0x%04X; HL == 0x%04X\n", (unsigned)sp, (unsigned)hl);
     #endif
     sp = hl;
 }
@@ -3117,7 +3105,7 @@ static void ld_sp_hl(void)
 static void ld_a__nn(void)
 {
     #ifdef DUMP
-    printf("LD A, (0x%04X): A == 0x%02X\n", (unsigned)nn, (unsigned)a);
+    os_print("LD A, (0x%04X): A == 0x%02X\n", (unsigned)nn, (unsigned)a);
     #endif
     a = mem_readb(nn);
     ip += 2;
@@ -3126,7 +3114,7 @@ static void ld_a__nn(void)
 static void ei_(void)
 {
     #ifdef DUMP
-    printf("EI: Interrupts %s\n", ints_enabled ? "enabled" : "disabled");
+    os_print("EI: Interrupts %s\n", ints_enabled ? "enabled" : "disabled");
     #endif
     want_ints_to_be = 1;
 }
@@ -3136,7 +3124,7 @@ static void cp_s(void)
     uint32_t eflags;
 
     #ifdef DUMP
-    printf("CP A, 0x%02X: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
+    os_print("CP A, 0x%02X: A == 0x%02X\n", (unsigned)mem_readb(ip), (unsigned)a);
     #endif
 
     f = FLAG_SUB;
@@ -3152,11 +3140,11 @@ static void cp_s(void)
 static void rst0x38(void)
 {
     #ifdef DUMP
-    printf("RST $38: IP == 0x%04X\n", (unsigned)ip - 1);
+    os_print("RST $38: IP == 0x%04X\n", (unsigned)ip - 1);
     #endif
     #ifdef HALT_ON_RST
-    printf("RST – halting\n");
-    exit(1);
+    os_print("RST – halting\n");
+    exit_err();
     #endif
     push(ip);
     ip = 0x0038;
@@ -3428,6 +3416,8 @@ void run(void)
 {
     #ifdef TRUE_TIMING
     int64_t too_short = 0, collect_sleep_time = 0;
+
+    tsc_resolution = determine_tsc_resolution();
     #endif
 
     init_video();
@@ -3499,16 +3489,16 @@ void run(void)
         opcode = mem_readb(ip);
         if (handle[opcode] == NULL)
         {
-            printf("Unknown opcode 0x%02X\n", opcode);
-            break;
+            os_print("Unknown opcode 0x%02X\n", opcode);
+            exit_err();
         }
 
         #ifdef DUMP_REGS
-        printf("IP=%04x AF=%04x BC=%04x DE=%04x HL=%04x SP=%04x I=%04x\n", (unsigned)ip, (unsigned)af, (unsigned)bc, (unsigned)de, (unsigned)hl, (unsigned)sp, (unsigned)io_regs->int_flag);
+        os_print("IP=%04x AF=%04x BC=%04x DE=%04x HL=%04x SP=%04x I=%04x\n", (unsigned)ip, (unsigned)af, (unsigned)bc, (unsigned)de, (unsigned)hl, (unsigned)sp, (unsigned)io_regs->int_flag);
         #endif
 
         #ifdef DUMP
-        printf("0x%04X — ", (unsigned)ip);
+        os_print("0x%04X — ", (unsigned)ip);
         #endif
         ip++;
 
@@ -3522,7 +3512,7 @@ void run(void)
         if (change_int_status)
         {
             #ifdef DUMP
-            printf("Changing interrupt status from %s to %s\n", ints_enabled ? "enabled" : "disabled", want_ints_to_be ? "enabled" : "disabled");
+            os_print("Changing interrupt status from %s to %s\n", ints_enabled ? "enabled" : "disabled", want_ints_to_be ? "enabled" : "disabled");
             #endif
             ints_enabled = want_ints_to_be;
             change_int_status = 0;
@@ -3536,12 +3526,12 @@ void run(void)
         diff = new_tsc - last_tsc;
         last_tsc = new_tsc;
 
-        too_short = cyc - 1000LL * (uint64_t)diff / (uint64_t)rdtsc_resolution;
+        too_short = cyc - 1000LL * (uint64_t)diff / (uint64_t)tsc_resolution;
         collect_sleep_time += too_short;
 
         if (collect_sleep_time >= 10000)
         {
-            nanosleep(&(struct timespec){ .tv_nsec = collect_sleep_time * 1000 }, NULL);
+            sleep_ms(collect_sleep_time);
             collect_sleep_time = 0;
         }
         #endif

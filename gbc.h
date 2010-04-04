@@ -4,6 +4,12 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "os-advio.h"
+#include "os-def.h"
+#include "os-io.h"
+#include "os-std.h"
+#include "os-time.h"
+
 
 struct io
 {
@@ -77,9 +83,9 @@ extern int card_type, rom_size, ram_size;
 extern uint16_t _ip, _sp, _af, _bc, _de, _hl;
 extern int ints_enabled, want_ints_to_be, lcd_on, double_speed;
 extern volatile int interrupt_issued, keystates;
-extern uint32_t rdtsc_resolution;
+extern uint32_t tsc_resolution;
 extern void *vidmem;
-extern FILE *fp;
+extern file_obj fp, save;
 extern int mbc, ext_ram, rtc, batt, rmbl;
 extern uint8_t *ext_ram_ptr, *rom_bank_ptr, *base_rom_ptr;
 extern uint8_t *int_ram, *oam_io, *vidram, *int_wram, *full_int_wram, *full_vidram;
@@ -147,7 +153,7 @@ void init_memory(void);
 void init_video(void);
 void io_outb(uint8_t reg, uint8_t val);
 void load_memory(void);
-void load_rom(const char *fname);
+void load_rom(const char *fname, const char *sname);
 void mem_writeb(uintptr_t addr, uint8_t value);
 void mem_writew(uintptr_t addr, uint16_t value);
 uint8_t mem_readb(uintptr_t addr);
@@ -156,6 +162,7 @@ uint16_t pop(void);
 void push(uint16_t value);
 void redraw(void);
 void run(void);
+void save_to_disk(void);
 void update_keyboard(void);
 void update_timer(int cycles_gone);
 

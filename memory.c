@@ -1,6 +1,4 @@
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "gbc.h"
@@ -12,6 +10,7 @@ static uint8_t no_ramr_handler(uintptr_t addr);
 static void no_romw_handler(uintptr_t addr, uint8_t value);
 static uint8_t no_romr_handler(uintptr_t addr);
 static void no_load_handler(void);
+static void no_save_handler(void);
 
 extern void mbc1_ram_write(uintptr_t addr, uint8_t value);
 extern void mbc2_ram_write(uintptr_t addr, uint8_t value);
@@ -33,6 +32,10 @@ extern void mbc1_load(void);
 extern void mbc2_load(void);
 extern void mbc3_load(void);
 extern void mbc5_load(void);
+extern void mbc1_save(void);
+extern void mbc2_save(void);
+extern void mbc3_save(void);
+extern void mbc5_save(void);
 
 static void (*const cart_ram_write[6])(uintptr_t addr, uint8_t value) =
 {
@@ -84,16 +87,26 @@ static void (*const cart_load[6])(void) =
     &mbc5_load
 };
 
+static void (*const cart_save[6])(void) =
+{
+    &no_save_handler,
+    &mbc1_save,
+    &mbc2_save,
+    &mbc3_save,
+    &no_save_handler,
+    &mbc5_save
+};
+
 void init_memory(void)
 {
-    int_ram = malloc(4096);
-    full_int_wram = malloc(32768 - 4096);
+    int_ram = alloc_mem(4096);
+    full_int_wram = alloc_mem(32768 - 4096);
     int_wram = full_int_wram;
-    oam_io = calloc(1, 512);
+    oam_io = alloc_cmem(512);
     io_regs = (struct io *)&oam_io[0x100];
-    full_vidram = calloc(1, 16384);
+    full_vidram = alloc_cmem(16384);
     vidram = full_vidram;
-    vidmem = malloc(256 * 256 * 4);
+    vidmem = alloc_mem(256 * 256 * 4);
     memset(vidmem, 255, 256 * 256 * 4);
 }
 
@@ -102,11 +115,11 @@ void load_memory(void)
     fseek(fp, 0, SEEK_SET);
     if (!mbc)
     {
-        base_rom_ptr = malloc(4096);
+        base_rom_ptr = alloc_mem(4096);
         fread(base_rom_ptr, 1024, 4, fp);
         if (rom_size > 1)
         {
-            rom_bank_ptr = malloc(4096);
+            rom_bank_ptr = alloc_mem(4096);
             fread(rom_bank_ptr, 1024, 4, fp);
         }
     }
@@ -114,10 +127,15 @@ void load_memory(void)
         cart_load[mbc]();
 }
 
+void save_to_disk(void)
+{
+    cart_save[mbc]();
+}
+
 void mem_writeb(uintptr_t addr, uint8_t value)
 {
     #ifdef DUMP
-    printf("0x%02X -> 0x%04X\n", (unsigned)value, (unsigned)addr);
+    os_print("0x%02X -> 0x%04X\n", (unsigned)value, (unsigned)addr);
     #endif
 
     if ((addr >= 0x8000) && (addr < 0xFE00))
@@ -147,8 +165,8 @@ void mem_writeb(uintptr_t addr, uint8_t value)
     {
         if (!mbc)
         {
-            fprintf(stderr, "No MBC available (tried ROM write 0x%02X to 0x%04X)!\n", value, addr);
-            exit(1);
+            os_eprint("No MBC available (tried ROM write 0x%02X to 0x%04X)!\n", value, addr);
+            exit_err();
         }
         cart_rom_write[mbc](addr, value);
     }
@@ -201,7 +219,7 @@ uint8_t mem_readb_(uintptr_t addr)
 uint8_t mem_readb(uintptr_t addr)
 {
     uint8_t ret = mem_readb_(addr);
-    printf("0x%04X == 0x%02X\n", (unsigned)addr, (unsigned)ret);
+    os_print("0x%04X == 0x%02X\n", (unsigned)addr, (unsigned)ret);
     return ret;
 }
 #endif
@@ -214,30 +232,36 @@ uint16_t mem_readw(uintptr_t addr)
 
 static void no_ramw_handler(uintptr_t addr, uint8_t value)
 {
-    fprintf(stderr, "No RAM write handler available! (MBC%i, 0x%02X to 0x%04X)\n", mbc, value, addr);
-    exit(1);
+    os_eprint("No RAM write handler available! (MBC%i, 0x%02X to 0x%04X)\n", mbc, value, addr);
+    exit_err();
 }
 
 static uint8_t no_ramr_handler(uintptr_t addr)
 {
-    fprintf(stderr, "No RAM read handler available! (MBC%i, from 0x%04X)\n", mbc, addr);
-    exit(1);
+    os_eprint("No RAM read handler available! (MBC%i, from 0x%04X)\n", mbc, addr);
+    exit_err();
 }
 
 static void no_romw_handler(uintptr_t addr, uint8_t value)
 {
-    fprintf(stderr, "No ROM write handler available! (MBC%i, 0x%02X to 0x%04X)\n", mbc, value, addr);
-    exit(1);
+    os_eprint("No ROM write handler available! (MBC%i, 0x%02X to 0x%04X)\n", mbc, value, addr);
+    exit_err();
 }
 
 static uint8_t no_romr_handler(uintptr_t addr)
 {
-    fprintf(stderr, "No ROM read handler available! (MBC%i, from 0x%04X)\n", mbc, addr);
-    exit(1);
+    os_eprint("No ROM read handler available! (MBC%i, from 0x%04X)\n", mbc, addr);
+    exit_err();
 }
 
 static void no_load_handler(void)
 {
-    fprintf(stderr, "No load handler available! (MBC%i)\n", mbc);
-    exit(1);
+    os_eprint("No load handler available! (MBC%i)\n", mbc);
+    exit_err();
+}
+
+static void no_save_handler(void)
+{
+    os_eprint("No save handler available! (MBC%i)\n", mbc);
+    exit_err();
 }

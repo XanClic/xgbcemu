@@ -846,8 +846,8 @@ void io_outb(uint8_t reg, uint8_t val)
 {
     if (io_handlers[reg] == NULL)
     {
-        fprintf(stderr, "No handler for write (0x%02X) to I/O register %s (0x%02X)!\n", (unsigned)val, reg_names[reg], (unsigned)reg);
-        exit(1);
+        os_eprint("No handler for write (0x%02X) to I/O register %s (0x%02X)!\n", (unsigned)val, reg_names[reg], (unsigned)reg);
+        exit_err();
     }
     ((void (*)(uint8_t, int))io_handlers[reg])(val, reg);
 }

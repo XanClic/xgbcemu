@@ -1,106 +1,16 @@
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-
-#include <SDL/SDL.h>
+#include <string.h>
 
 #include "gbc.h"
-
-static timer_t redraw_timer;
-static SDL_Surface *screen;
-
-void deinit_sdl(void);
-void redraw_alrm(int signum);
-
-static uint32_t resolutions[10];
-static uint64_t old_rdtsc = 0;
 
 // #define DISPLAY_ALL
 
 void init_video(void)
 {
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) == -1)
-    {
-        fprintf(stderr, "Cannot init SDL: %s\n", SDL_GetError());
-        exit(1);
-    }
-
-    atexit(SDL_Quit);
-
-    #ifndef DISPLAY_ALL
-    screen = SDL_SetVideoMode(160, 144, 32, SDL_HWSURFACE);
+    #ifdef DISPLAY_ALL
+    os_open_screen(256, 256);
     #else
-    screen = SDL_SetVideoMode(256, 256, 32, SDL_HWSURFACE);
+    os_open_screen(160, 144);
     #endif
-    if (screen == NULL)
-    {
-        fprintf(stderr, "Cannot set video mode: %s\n", SDL_GetError());
-        exit(1);
-    }
-
-    SDL_WM_SetCaption("gxemu", NULL);
-
-    sigaction(SIGALRM, &(struct sigaction){ .sa_handler = &redraw_alrm }, NULL);
-
-    if (timer_create(CLOCK_REALTIME, NULL, &redraw_timer))
-    {
-        perror("Cannot create screen update timer");
-        exit(1);
-    }
-
-    struct itimerspec tmr =
-    {
-        .it_interval =
-        {
-            .tv_nsec = 1000000
-        },
-        .it_value =
-        {
-            .tv_nsec = 1000000
-        }
-    };
-
-    timer_settime(redraw_timer, 0, &tmr, NULL);
-
-    for (int i = 0; i < 10; i++)
-    {
-        while (!*((volatile uint32_t *)&rdtsc_resolution));
-
-        resolutions[i] = *((volatile uint32_t *)&rdtsc_resolution);
-        if (i < 9)
-        {
-            old_rdtsc = 0;
-            __asm__ __volatile__ ("" ::: "memory");
-            rdtsc_resolution = 0;
-        }
-    }
-
-    printf("Determined TSC resolutions (inc/ms):\n");
-    uint64_t sum = 0;
-    uint32_t max = 0, min = 0xFFFFFFFF;
-    for (int i = 0; i < 10; i++)
-    {
-        if (resolutions[i] < min)
-            min = resolutions[i];
-        if (resolutions[i] > max)
-            max = resolutions[i];
-        sum += (uint64_t)resolutions[i];
-        if (i < 9)
-            printf("%i ", resolutions[i]);
-        else
-            printf("%i\n", resolutions[i]);
-    }
-
-    sum -= min + max;
-
-    sum /= 8;
-
-    printf("Total resolution: %i; removed %i and %i\n", (int)sum, min, max);
-
-    rdtsc_resolution = sum;
-
-    timer_delete(redraw_timer);
 }
 
 static void draw_bg_line(int line, int bit7val)
@@ -168,88 +78,10 @@ void draw_line(int line)
         uint8_t num;
         uint8_t flags;
     } __attribute__((packed)) *oam = (void *)oam_io;
-    SDL_Event evt;
     int sx = io_regs->scx, sy = io_regs->scy;
     int abs_line = (line + sy) & 0xFF;
 
-    while (SDL_PollEvent(&evt))
-    {
-        int change;
-
-        switch (evt.type)
-        {
-            case SDL_QUIT:
-                exit(0);
-                break;
-            case SDL_KEYDOWN:
-                change = 1;
-                switch (evt.key.keysym.sym)
-                {
-                    case SDLK_a:
-                        keystates |= VK_A;
-                        break;
-                    case SDLK_b:
-                        keystates |= VK_B;
-                        break;
-                    case SDLK_RETURN:
-                        keystates |= VK_START;
-                        break;
-                    case SDLK_s:
-                        keystates |= VK_SELECT;
-                        break;
-                    case SDLK_LEFT:
-                        keystates |= VK_LEFT;
-                        break;
-                    case SDLK_RIGHT:
-                        keystates |= VK_RIGHT;
-                        break;
-                    case SDLK_UP:
-                        keystates |= VK_UP;
-                        break;
-                    case SDLK_DOWN:
-                        keystates |= VK_DOWN;
-                        break;
-                    default:
-                        change = 0;
-                }
-                if (change)
-                    update_keyboard();
-                break;
-            case SDL_KEYUP:
-                change = 1;
-                switch (evt.key.keysym.sym)
-                {
-                    case SDLK_a:
-                        keystates &= ~VK_A;
-                        break;
-                    case SDLK_b:
-                        keystates &= ~VK_B;
-                        break;
-                    case SDLK_RETURN:
-                        keystates &= ~VK_START;
-                        break;
-                    case SDLK_s:
-                        keystates &= ~VK_SELECT;
-                        break;
-                    case SDLK_LEFT:
-                        keystates &= ~VK_LEFT;
-                        break;
-                    case SDLK_RIGHT:
-                        keystates &= ~VK_RIGHT;
-                        break;
-                    case SDLK_UP:
-                        keystates &= ~VK_UP;
-                        break;
-                    case SDLK_DOWN:
-                        keystates &= ~VK_DOWN;
-                        break;
-                    default:
-                        change = 0;
-                }
-                if (change)
-                    update_keyboard();
-        }
-    }
+    os_handle_events();
 
     if (!(io_regs->lcdc & (1 << 7)))
         return;
@@ -396,56 +228,7 @@ void draw_line(int line)
         for (int rem = 144; rem < 256; rem++)
             draw_line(rem);
         #endif
-
-        SDL_LockSurface(screen);
-        #ifndef DISPLAY_ALL
-        for (int y = 0; y < 144; y++)
-        {
-            for (int x = 0; x < 160; x++)
-            {
-                int px = (x + io_regs->scx) & 0xFF;
-                int py = (y + io_regs->scy) & 0xFF;
-                uint32_t col = ((uint32_t *)vidmem)[py * 256 + px];
-                ((uint32_t *)screen->pixels)[y * 160 + x] = SDL_MapRGB(screen->format, (col & 0xFF0000) >> 16, (col & 0xFF00) >> 8, col & 0xFF);
-            }
-        }
-        #else
-        for (int y = 0; y < 256; y++)
-        {
-            for (int x = 0; x < 256; x++)
-            {
-                uint32_t col = ((uint32_t *)vidmem)[y * 256 + x];
-                ((uint32_t *)screen->pixels)[y * 256 + x] = SDL_MapRGB(screen->format, (col & 0xFF0000) >> 16, (col & 0xFF00) >> 8, col & 0xFF);
-            }
-        }
-        #endif
-        SDL_UnlockSurface(screen);
-
-        SDL_UpdateRect(screen, 0, 0, 0, 0);
     }
 
-    // redrawing--;
-}
-
-void redraw_alrm(int signum)
-{
-    if (signum != SIGALRM)
-        return;
-    if (!rdtsc_resolution)
-    {
-        if (!old_rdtsc)
-        {
-            uint32_t lo, hi;
-            __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
-            old_rdtsc = (uint64_t)lo | ((uint64_t)hi << 32);
-        }
-        else
-        {
-            uint32_t lo, hi;
-            __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
-            rdtsc_resolution = ((uint64_t)lo | ((uint64_t)hi << 32)) - old_rdtsc;
-            printf("Res: 0x%08X\n", rdtsc_resolution);
-        }
-    }
-    // redraw();
+    os_draw_line(sx, sy, line);
 }

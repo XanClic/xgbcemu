@@ -7,7 +7,7 @@
 #define RLC(sr, cr) \
     static void rlc_##sr(void) \
     { \
-        printf("RLC " #cr ": " #cr " == 0x%02X\n", (unsigned)sr); \
+        os_print("RLC " #cr ": " #cr " == 0x%02X\n", (unsigned)sr); \
         f = (sr & 0x80) ? FLAG_CRY : 0; \
         __asm__ __volatile__ ("rol al,1" : "=a"(sr) : "a"(sr)); \
         if (!sr) \
@@ -17,7 +17,7 @@
 #define RRC(sr, cr) \
     static void rrc_##sr(void) \
     { \
-        printf("RRC " #cr ": " #cr " == 0x%02X\n", (unsigned)sr); \
+        os_print("RRC " #cr ": " #cr " == 0x%02X\n", (unsigned)sr); \
         f = (sr & 0x01) * FLAG_CRY; \
         __asm__ __volatile__ ("ror al,1" : "=a"(sr) : "a"(sr)); \
         if (!sr) \
@@ -28,7 +28,7 @@
     static void rl_##sr(void) \
     { \
         int cry = f & FLAG_CRY; \
-        printf("RL " #cr ": " #cr " == 0x%02X\n", (unsigned)sr); \
+        os_print("RL " #cr ": " #cr " == 0x%02X\n", (unsigned)sr); \
         f = (sr & 0x80) ? FLAG_CRY : 0; \
         sr = ((sr << 1) & 0xFF) | !!cry; \
         if (!sr) \
@@ -39,7 +39,7 @@
     static void rr_##sr(void) \
     { \
         int cry = f & FLAG_CRY; \
-        printf("RL " #cr ": " #cr " == 0x%02X\n", (unsigned)sr); \
+        os_print("RL " #cr ": " #cr " == 0x%02X\n", (unsigned)sr); \
         f = (sr & 0x01) * FLAG_CRY; \
         sr = (sr >> 1) | (!!cry << 7); \
         if (!sr) \
@@ -49,7 +49,7 @@
 #define SLA(sr, cr) \
     static void sla_##sr(void) \
     { \
-        printf("SLA " #cr ": " #cr " == 0x%02X\n", (unsigned)sr); \
+        os_print("SLA " #cr ": " #cr " == 0x%02X\n", (unsigned)sr); \
         f = (sr & 0x80) ? FLAG_CRY : 0; \
         sr <<= 1; \
         if (!sr) \
@@ -59,7 +59,7 @@
 #define SRA(sr, cr) \
     static void sra_##sr(void) \
     { \
-        printf("SRA " #cr ": " #cr " == 0x%02X\n", (unsigned)sr); \
+        os_print("SRA " #cr ": " #cr " == 0x%02X\n", (unsigned)sr); \
         f = (sr & 0x01) * FLAG_CRY; \
         sr = (sr >> 1) | (sr & 0x80); \
         if (!sr) \
@@ -69,7 +69,7 @@
 #define SRL(sr, cr) \
     static void srl_##sr(void) \
     { \
-        printf("SRL " #cr ": " #cr " == 0x%02X\n", (unsigned)sr); \
+        os_print("SRL " #cr ": " #cr " == 0x%02X\n", (unsigned)sr); \
         f = (sr & 0x01) * FLAG_CRY; \
         sr >>= 1; \
         if (!sr) \
@@ -79,7 +79,7 @@
 #define SWAP(sr, cr) \
     static void swap_##sr(void) \
     { \
-        printf("SWAP " #cr ": " #cr " == 0x%02X\n", (unsigned)sr); \
+        os_print("SWAP " #cr ": " #cr " == 0x%02X\n", (unsigned)sr); \
         if (!sr) \
             f = FLAG_ZERO; \
         else \
@@ -236,7 +236,7 @@ static void rlc__hl(void)
     uint8_t val;
 
     #ifdef DUMP
-    printf("RLC (HL): HL == 0x%04X\n", (unsigned)hl);
+    os_print("RLC (HL): HL == 0x%04X\n", (unsigned)hl);
     #endif
 
     val = mem_readb(hl);
@@ -252,7 +252,7 @@ static void rrc__hl(void)
     uint8_t val;
 
     #ifdef DUMP
-    printf("RRC (HL): HL == 0x%04X\n", (unsigned)hl);
+    os_print("RRC (HL): HL == 0x%04X\n", (unsigned)hl);
     #endif
 
     val = mem_readb(hl);
@@ -269,7 +269,7 @@ static void rl__hl(void)
     uint8_t val;
 
     #ifdef DUMP
-    printf("RL (HL): HL == 0x%04X\n", (unsigned)hl);
+    os_print("RL (HL): HL == 0x%04X\n", (unsigned)hl);
     #endif
 
     val = mem_readb(hl);
@@ -286,7 +286,7 @@ static void rr__hl(void)
     uint8_t val;
 
     #ifdef DUMP
-    printf("RR (HL): HL == 0x%04X\n", (unsigned)hl);
+    os_print("RR (HL): HL == 0x%04X\n", (unsigned)hl);
     #endif
 
     val = mem_readb(hl);
@@ -302,7 +302,7 @@ static void sla__hl(void)
     uint8_t val;
 
     #ifdef DUMP
-    printf("SLA (HL): HL == 0x%04X\n", (unsigned)hl);
+    os_print("SLA (HL): HL == 0x%04X\n", (unsigned)hl);
     #endif
 
     val = mem_readb(hl);
@@ -318,7 +318,7 @@ static void sra__hl(void)
     uint8_t val;
 
     #ifdef DUMP
-    printf("SRA (HL): HL == 0x%04X\n", (unsigned)hl);
+    os_print("SRA (HL): HL == 0x%04X\n", (unsigned)hl);
     #endif
 
     val = mem_readb(hl);
@@ -334,7 +334,7 @@ static void srl__hl(void)
     uint8_t val;
 
     #ifdef DUMP
-    printf("SRL (HL): HL == 0x%04X\n", (unsigned)hl);
+    os_print("SRL (HL): HL == 0x%04X\n", (unsigned)hl);
     #endif
 
     val = mem_readb(hl);
@@ -350,7 +350,7 @@ static void swap__hl(void)
     uint8_t val;
 
     #ifdef DUMP
-    printf("SWAP (HL): HL == 0x%04X\n", (unsigned)hl);
+    os_print("SWAP (HL): HL == 0x%04X\n", (unsigned)hl);
     #endif
 
     val = mem_readb(hl);

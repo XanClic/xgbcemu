@@ -1,24 +1,25 @@
-CC = @gcc
-LD = @gcc
+include make.config
+
 ECHO = @echo
 RM = -@rm -f
 
-CFLAGS = -std=gnu99 -O3 -Wall -Wextra -pedantic -c -funsigned-char -masm=intel -g2 -I$(shell pwd)
-LDFLAGS = `sdl-config --cflags --libs` -lrt
-
-OBJS = $(patsubst %.c,%.o,$(wildcard *.c) $(wildcard cartridges/*.c))
+OBJS = $(patsubst %.c,%.o,$(wildcard *.c) $(wildcard cartridges/*.c)) $(OSOBJS)
 
 .PHONY: all clean
 
-all: gxemu
+all: xgbcemu
 
-gxemu: $(OBJS)
+xgbcemu: $(OBJS)
 	$(ECHO) "LINK    >$@"
-	$(LD) $(LDFLAGS) $^ -o $@
+	$(LINK) $(LDFLAGS) $^ -o $@
 
 %.o: %.c
 	$(ECHO) "CC      $<"
 	$(CC) $(CFLAGS) $< -o $@
 
+make.config: configure
+	$(ECHO) "Executing ./configure..."
+	@./configure
+
 clean:
-	$(RM) $(OBJS) gxemu
+	$(RM) $(OBJS) xgbcemu

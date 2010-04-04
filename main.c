@@ -1,18 +1,14 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "gbc.h"
 
 int main(int argc, char *argv[])
 {
-    if ((argc != 2) || !strcmp(argv[1], "--help") || !strcmp(argv[1], "-h"))
+    if (argc != 3)
     {
-        fprintf(stderr, "Usage: gxemu <ROM>\n");
-        return EXIT_FAILURE;
+        os_eprint("Usage: gxemu <ROM> <Save>\n");
+        exit_err();
     }
 
-    load_rom(argv[1]);
+    load_rom(argv[1], argv[2]);
 
-    return EXIT_SUCCESS;
+    exit_ok();
 }
