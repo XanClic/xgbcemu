@@ -18,4 +18,4 @@ uint8_t *int_ram = NULL, *oam_io = NULL, *vidram = NULL, *int_wram = NULL, *full
 uint16_t bpalette[32], opalette[32];
 uint8_t *btm[2] = { NULL }, *bwtd[2] = { NULL }, *wtm[2] = { NULL };
 
-int hdma_on = 0;
+int hdma_on = 0, boost = 0;
