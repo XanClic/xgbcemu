@@ -1,14 +1,15 @@
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
+
+#include "os-io.h"
 
 void *io_regs = NULL;
 uint16_t _ip, _sp, _af, _bc, _de, _hl;
 int rom_size, ram_size, ints_enabled = 1, want_ints_to_be = 1, lcd_on = 1, double_speed = 0;
 volatile int interrupt_issued = 0, keystates = 0;
-uint32_t rdtsc_resolution = 0;
+uint32_t tsc_resolution = 0;
 void *vidmem = NULL;
-FILE *fp;
+file_obj fp, save;
 
 int mbc, ext_ram, rtc, batt, rmbl;
 uint8_t *ext_ram_ptr = NULL, *rom_bank_ptr = NULL, *base_rom_ptr = NULL;

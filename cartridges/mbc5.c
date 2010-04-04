@@ -8,14 +8,14 @@ static uint8_t *ram_banks[16] = { NULL }, *rom_banks[512] = { NULL };
 
 void mbc5_ram_write(uintptr_t addr, uint8_t val)
 {
-    fprintf(stderr, "No MBC5 RAM write handler (0x%02X to 0x%04X)\n", val, addr);
-    exit(1);
+    os_eprint("No MBC5 RAM write handler (0x%02X to 0x%04X)\n", val, addr);
+    exit_err();
 }
 
 uint8_t mbc5_ram_read(uintptr_t addr)
 {
-    fprintf(stderr, "No MBC5 RAM read handler (from 0x%04X)\n", addr);
-    exit(1);
+    os_eprint("No MBC5 RAM read handler (from 0x%04X)\n", addr);
+    exit_err();
 }
 
 void mbc5_rom_write(uintptr_t addr, uint8_t val)
@@ -48,8 +48,8 @@ void mbc5_rom_write(uintptr_t addr, uint8_t val)
 
 uint8_t mbc5_rom_read(uintptr_t addr)
 {
-    fprintf(stderr, "No MBC5 ROM read handler (from 0x%04X)\n", addr);
-    exit(1);
+    os_eprint("No MBC5 ROM read handler (from 0x%04X)\n", addr);
+    exit_err();
 }
 
 void mbc5_load(void)
@@ -65,4 +65,10 @@ void mbc5_load(void)
     }
     base_rom_ptr = rom_banks[0];
     rom_bank_ptr = rom_banks[1];
+}
+
+void mbc5_save(void)
+{
+    os_eprint("No MBC5 save handler\n");
+    exit_err();
 }
