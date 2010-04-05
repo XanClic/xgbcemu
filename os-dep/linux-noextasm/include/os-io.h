@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdio.h>
+#include <unistd.h>
 
 typedef FILE *file_obj;
 
@@ -18,6 +19,7 @@ typedef FILE *file_obj;
 #define os_file_read(file, size, buffer)  fread(buffer, 1, size, file)
 #define os_file_write(file, size, buffer) fwrite(buffer, 1, size, file)
 #define os_file_setpos(file, position)    fseek(file, position, SEEK_SET)
+#define os_resize_file(file, new_size)    ftruncate(fileno(file), new_size)
 
 void *os_map_file_into_memory(FILE *file, size_t length);
 

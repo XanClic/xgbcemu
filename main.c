@@ -4,7 +4,7 @@ int main(int argc, char *argv[])
 {
     if (argc != 3)
     {
-        os_eprint("Usage: gxemu <ROM> <Save>\n");
+        os_eprint("Usage: xgbcemu <ROM> <Save>\n");
         exit_err();
     }
 
