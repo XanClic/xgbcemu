@@ -23,6 +23,8 @@ done
 echo "Select the OS you want to compile for:"
 for os in $(ls os-dep); do
     echo "• $os"
+    echo -n "  — "
+    cat os-dep/$os/description
 done
 echo -n "Your choice? "
 read choice

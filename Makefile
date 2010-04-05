@@ -4,7 +4,11 @@ ECHO = @echo
 RM = -@rm -f
 ASM = @fasm > /dev/null
 
-OBJS = $(patsubst %.c,%.o,$(wildcard *.c) $(wildcard cartridges/*.c)) $(patsubst %.asm,%.o,$(wildcard *.asm)) $(OSOBJS)
+ifeq ($(EXT_ASM),yes)
+	OBJS = $(patsubst %.c,%.o,$(wildcard *.c) $(wildcard cartridges/*.c)) $(patsubst %.asm,%.o,$(wildcard *.asm)) $(OSOBJS)
+else
+	OBJS = $(patsubst %.c,%.o,$(wildcard *.c) $(wildcard cartridges/*.c)) $(OSOBJS)
+endif
 
 .PHONY: all clean
 
