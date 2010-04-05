@@ -9,7 +9,7 @@
     { \
         os_print("RLC " #cr ": " #cr " == 0x%02X\n", (unsigned)sr); \
         f = (sr & 0x80) ? FLAG_CRY : 0; \
-        __asm__ __volatile__ ("rol al,1" : "=a"(sr) : "a"(sr)); \
+        __asm__ __volatile__ ("rol $1,%%al" : "=a"(sr) : "a"(sr)); \
         if (!sr) \
             f |= FLAG_ZERO; \
     }
@@ -19,7 +19,7 @@
     { \
         os_print("RRC " #cr ": " #cr " == 0x%02X\n", (unsigned)sr); \
         f = (sr & 0x01) * FLAG_CRY; \
-        __asm__ __volatile__ ("ror al,1" : "=a"(sr) : "a"(sr)); \
+        __asm__ __volatile__ ("ror $1,%%al" : "=a"(sr) : "a"(sr)); \
         if (!sr) \
             f |= FLAG_ZERO; \
     }
@@ -99,7 +99,7 @@
     static void rlc_##sr(void) \
     { \
         f = (sr & 0x80) ? FLAG_CRY : 0; \
-        __asm__ __volatile__ ("rol al,1" : "=a"(sr) : "a"(sr)); \
+        __asm__ __volatile__ ("rol $1,%%al" : "=a"(sr) : "a"(sr)); \
         if (!sr) \
             f |= FLAG_ZERO; \
     }
@@ -108,7 +108,7 @@
     static void rrc_##sr(void) \
     { \
         f = (sr & 0x01) * FLAG_CRY; \
-        __asm__ __volatile__ ("ror al,1" : "=a"(sr) : "a"(sr)); \
+        __asm__ __volatile__ ("ror $1,%%al" : "=a"(sr) : "a"(sr)); \
         if (!sr) \
             f |= FLAG_ZERO; \
     }
@@ -307,7 +307,7 @@ static void rlc__hl(void)
 
     val = mem_readb(hl);
     f = (val & 0x80) ? FLAG_CRY : 0;
-    __asm__ __volatile__ ("rol al,1" : "=a"(val) : "a"(val));
+    __asm__ __volatile__ ("rol $1,%%al" : "=a"(val) : "a"(val));
     if (!val)
         f |= FLAG_ZERO;
     mem_writeb(hl, val);
@@ -323,7 +323,7 @@ static void rrc__hl(void)
 
     val = mem_readb(hl);
     f = (val & 0x01) * FLAG_CRY;
-    __asm__ __volatile__ ("ror al,1" : "=a"(val) : "a"(val));
+    __asm__ __volatile__ ("ror $1,%%al" : "=a"(val) : "a"(val));
     if (!val)
         f |= FLAG_ZERO;
     mem_writeb(hl, val);
