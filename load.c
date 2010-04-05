@@ -23,7 +23,7 @@ static const unsigned char id[0x30] =
 void load_rom(const char *fname, const char *sname)
 {
     uint8_t *start_of_rom;
-    int cart_type;
+    int cart_type, save_created = 0;
 
     init_memory();
 
@@ -38,6 +38,7 @@ void load_rom(const char *fname, const char *sname)
     if (save == NULL)
     {
         save = os_create_file_rw(sname);
+        save_created = 1;
         if (save == NULL)
         {
             os_close_file(fp);
@@ -115,6 +116,8 @@ void load_rom(const char *fname, const char *sname)
     }
 
     os_print("%i ROM banks, %i RAM banks.\n", rom_size, ram_size);
+
+    os_resize_file(save, ram_size * 8192);
 
     switch (cart_type)
     {
