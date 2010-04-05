@@ -36,3 +36,4 @@ int current_day_of_year(void)
 {
     return curtime->tm_yday;
 }
+

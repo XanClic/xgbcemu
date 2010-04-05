@@ -16,7 +16,7 @@ all: xgbcemu
 
 xgbcemu: $(OBJS)
 	$(ECHO) "LINK    >$@"
-	$(LINK) $(LDFLAGS) $^ -o $@
+	$(LINK) $^ -o $@ $(LDFLAGS)
 
 %.o: %.c
 	$(ECHO) "CC      $<"
