@@ -12,7 +12,7 @@ static const int collect_overflow[4] =
 
 void update_timer(int cycles_gone)
 {
-    static int collected = 0, vsync_collect = 0, div_collect = 0;
+    static int collected = 0, vsync_collect = 0, div_collect = 0, redrawed = 0;
     int hblank_start = 0;
 
     div_collect += cycles_gone;
@@ -31,19 +31,24 @@ void update_timer(int cycles_gone)
             io_regs->stat |= 1;
         else
         {
-            if (vsync_collect < 51);
+            if (vsync_collect < 51)
+                redrawed = 0;
             else if (vsync_collect < 71)
                 io_regs->stat |= 2;
             else
+            {
                 io_regs->stat |= 3;
+                if (!redrawed)
+                {
+                    draw_line(io_regs->ly);
+                    redrawed = 1;
+                }
+            }
         }
 
         while (vsync_collect >= 114) // Eine Zeile wäre jetzt fertig
         {
             vsync_collect -= 114;
-
-            if (io_regs->ly < 144)
-                draw_line(io_regs->ly);
 
             hblank_start = 1;
             if (hdma_on)

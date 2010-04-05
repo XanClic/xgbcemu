@@ -127,11 +127,23 @@ uint8_t mbc3_rom_read(uintptr_t addr)
 
 void mbc3_load(void)
 {
-    os_file_setpos(save, 0);
-    for (int i = 0; i < ram_size; i++)
+    uint8_t *base = NULL;
+    #ifdef MAP_BATTERY
+    base = os_map_file_into_memory(save, ram_size * 8192);
+    if (base != NULL)
+        for (int i = 0; i < ram_size; i++)
+            ram_banks[i] = base + i * 8192;
+    #endif
+    if (base == NULL)
     {
-        ram_banks[i] = alloc_cmem(8192);
-        os_file_read(save, 8192, ram_banks[i]);
+        os_file_setpos(save, 0);
+        for (int i = 0; i < ram_size; i++)
+        {
+            ram_banks[i] = alloc_cmem(8192);
+            os_file_read(save, 8192, ram_banks[i]);
+        }
+
+        printf("[mbc3] Battery won't be saved automatically, use space to save its content.\n");
     }
     ext_ram_ptr = ram_banks[0];
 
@@ -149,4 +161,6 @@ void mbc3_save(void)
     os_file_setpos(save, 0);
     for (int i = 0; i < ram_size; i++)
         os_file_write(save, 8192, ram_banks[i]);
+
+    printf("[mbc3] Battery content written manually.\n");
 }

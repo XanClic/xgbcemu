@@ -1525,7 +1525,7 @@ static void adc_a_b(void)
     #ifdef DUMP
     os_print("ADC A, B: A == 0x%02X; B == 0x%02X\n", (unsigned)a, (unsigned)b);
     #endif
-    if (f & X86_CF)
+    if (f & FLAG_CRY)
         __asm__ __volatile__ ("stc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(b));
     else
         __asm__ __volatile__ ("clc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(b));
@@ -1550,7 +1550,7 @@ static void adc_a_c(void)
     #ifdef DUMP
     os_print("ADC A, C: A == 0x%02X; C == 0x%02X\n", (unsigned)a, (unsigned)c);
     #endif
-    if (f & X86_CF)
+    if (f & FLAG_CRY)
         __asm__ __volatile__ ("stc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(c));
     else
         __asm__ __volatile__ ("clc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(c));
@@ -1575,7 +1575,7 @@ static void adc_a_d(void)
     #ifdef DUMP
     os_print("ADC A, D: A == 0x%02X; D == 0x%02X\n", (unsigned)a, (unsigned)d);
     #endif
-    if (f & X86_CF)
+    if (f & FLAG_CRY)
         __asm__ __volatile__ ("stc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(d));
     else
         __asm__ __volatile__ ("clc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(d));
@@ -1600,7 +1600,7 @@ static void adc_a_e(void)
     #ifdef DUMP
     os_print("ADC A, E: A == 0x%02X; E == 0x%02X\n", (unsigned)a, (unsigned)e);
     #endif
-    if (f & X86_CF)
+    if (f & FLAG_CRY)
         __asm__ __volatile__ ("stc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(e));
     else
         __asm__ __volatile__ ("clc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(e));
@@ -1625,7 +1625,7 @@ static void adc_a_h(void)
     #ifdef DUMP
     os_print("ADC A, H: A == 0x%02X; H == 0x%02X\n", (unsigned)a, (unsigned)h);
     #endif
-    if (f & X86_CF)
+    if (f & FLAG_CRY)
         __asm__ __volatile__ ("stc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(h));
     else
         __asm__ __volatile__ ("clc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(h));
@@ -1650,7 +1650,7 @@ static void adc_a_l(void)
     #ifdef DUMP
     os_print("ADC A, L: A == 0x%02X; L == 0x%02X\n", (unsigned)a, (unsigned)l);
     #endif
-    if (f & X86_CF)
+    if (f & FLAG_CRY)
         __asm__ __volatile__ ("stc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(l));
     else
         __asm__ __volatile__ ("clc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(l));
@@ -1672,7 +1672,7 @@ static void adc_a__hl(void)
     #ifdef DUMP
     os_print("ADC A, (HL): A == 0x%02X; HL == 0x%04X\n", (unsigned)a, (unsigned)hl);
     #endif
-    if (f & X86_CF)
+    if (f & FLAG_CRY)
         __asm__ __volatile__ ("stc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(mem_readb(hl)));
     else
         __asm__ __volatile__ ("clc; adc al,dl; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a), "d"(mem_readb(hl)));
@@ -1696,7 +1696,7 @@ static void adc_a_a(void)
     #ifdef DUMP
     os_print("ADC A, A: A == 0x%02X\n", (unsigned)a);
     #endif
-    if (f & X86_CF)
+    if (f & FLAG_CRY)
         __asm__ __volatile__ ("stc; adc al,al; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a));
     else
         __asm__ __volatile__ ("clc; adc al,al; pushfd; pop edx" : "=a"(a), "=d"(eflags) : "a"(a));
