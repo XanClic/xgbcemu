@@ -1,12 +1,14 @@
 #!/bin/bash
 cc=gcc
 link=gcc
+choice=none
 for param in $*; do
     if [ "$param" == "--help" ]; then
         echo "Parameters:"
         echo " --help    – prints this list"
         echo " --cc=CC   – selects the C compiler to be used"
         echo " --link=LD – selects the linker to be used"
+        echo " --os=OS   - selects the OS to compile for"
         echo
         echo "Environment variables:"
         echo " CFLAGS  – additional flags for the C compiler"
@@ -19,15 +21,20 @@ for param in $*; do
     if [ "$(echo $param | head -c 7)" == "--link=" ]; then
         link=$(echo $param | tail --bytes=+8)
     fi
+    if [ "$(echo $param | head -c 5)" == "--os=" ]; then
+        choice=$(echo $param | tail --bytes=+6)
+    fi
 done
-echo "Select the OS you want to compile for:"
-for os in $(ls os-dep); do
-    echo "• $os"
-    echo -n "  — "
-    cat os-dep/$os/description
-done
-echo -n "Your choice? "
-read choice
+if [ "$choice" == "none" ]; then
+    echo "Select the OS you want to compile for:"
+    for os in $(ls os-dep); do
+        echo "• $os"
+        echo -n "  — "
+        cat os-dep/$os/description
+    done
+    echo -n "Your choice? "
+    read choice
+fi
 if ! [ -d os-dep/$choice ]; then
     echo "There's no support for that OS (yet?)."
     exit 1
