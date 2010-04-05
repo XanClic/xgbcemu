@@ -1,0 +1,1 @@
+CDI systems which support cdi_bios_int10 (xgbcemu will switch to mode 13h).
