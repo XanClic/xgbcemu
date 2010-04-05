@@ -117,7 +117,9 @@ void load_rom(const char *fname, const char *sname)
 
     os_print("%i ROM banks, %i RAM banks.\n", rom_size, ram_size);
 
+    #ifdef MAP_BATTERY
     os_resize_file(save, ram_size * 8192);
+    #endif
 
     switch (cart_type)
     {
