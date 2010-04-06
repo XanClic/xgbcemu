@@ -79,7 +79,8 @@ static void leave_13h(void)
 
 void custom_exit(int num)
 {
-    leave_13h();
+    if (screen != NULL)
+        leave_13h();
     exit(num);
 }
 
