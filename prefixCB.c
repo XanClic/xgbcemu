@@ -1,178 +1,81 @@
 #include "gbc.h"
 
-// #define DUMP
-
-#ifdef DUMP
-
 #define RLC(sr, cr) \
     static void rlc_##sr(void) \
     { \
-        os_print("RLC " #cr ": " #cr " == 0x%02X\n", (unsigned)sr); \
-        f = (sr & 0x80) ? FLAG_CRY : 0; \
-        __asm__ __volatile__ ("rol $1,%%al" : "=a"(sr) : "a"(sr)); \
-        if (!sr) \
-            f |= FLAG_ZERO; \
+        r_f = (r_##sr & 0x80U) >> 3; \
+        __asm__ __volatile__ ("rol $1,%%al" : "=a"(r_##sr) : "a"(r_##sr)); \
+        if (!r_##sr) \
+            r_f |= FLAG_ZERO; \
     }
 
 #define RRC(sr, cr) \
     static void rrc_##sr(void) \
     { \
-        os_print("RRC " #cr ": " #cr " == 0x%02X\n", (unsigned)sr); \
-        f = (sr & 0x01) * FLAG_CRY; \
-        __asm__ __volatile__ ("ror $1,%%al" : "=a"(sr) : "a"(sr)); \
-        if (!sr) \
-            f |= FLAG_ZERO; \
+        r_f = (r_##sr & 0x01) << 4; \
+        __asm__ __volatile__ ("ror $1,%%al" : "=a"(r_##sr) : "a"(r_##sr)); \
+        if (!r_##sr) \
+            r_f |= FLAG_ZERO; \
     }
 
 #define RL(sr, cr) \
     static void rl_##sr(void) \
     { \
-        int cry = f & FLAG_CRY; \
-        os_print("RL " #cr ": " #cr " == 0x%02X\n", (unsigned)sr); \
-        f = (sr & 0x80) ? FLAG_CRY : 0; \
-        sr = ((sr << 1) & 0xFF) | !!cry; \
-        if (!sr) \
-            f |= FLAG_ZERO; \
+        unsigned cry = r_f & FLAG_CRY; \
+        r_f = (r_##sr & 0x80U) >> 3; \
+        r_##sr = (r_##sr << 1) | (cry >> 4); \
+        if (!r_##sr) \
+            r_f |= FLAG_ZERO; \
     }
 
 #define RR(sr, cr) \
     static void rr_##sr(void) \
     { \
-        int cry = f & FLAG_CRY; \
-        os_print("RL " #cr ": " #cr " == 0x%02X\n", (unsigned)sr); \
-        f = (sr & 0x01) * FLAG_CRY; \
-        sr = (sr >> 1) | (!!cry << 7); \
-        if (!sr) \
-            f |= FLAG_ZERO; \
+        int cry = r_f & FLAG_CRY; \
+        r_f = (r_##sr & 0x01) << 4; \
+        r_##sr = (r_##sr >> 1) | (cry << 3); \
+        if (!r_##sr) \
+            r_f |= FLAG_ZERO; \
     }
 
 #define SLA(sr, cr) \
     static void sla_##sr(void) \
     { \
-        os_print("SLA " #cr ": " #cr " == 0x%02X\n", (unsigned)sr); \
-        f = (sr & 0x80) ? FLAG_CRY : 0; \
-        sr <<= 1; \
-        if (!sr) \
-            f |= FLAG_ZERO; \
+        r_f = (r_##sr & 0x80U) >> 3; \
+        r_##sr <<= 1; \
+        if (!r_##sr) \
+            r_f |= FLAG_ZERO; \
     }
 
 #define SRA(sr, cr) \
     static void sra_##sr(void) \
     { \
-        os_print("SRA " #cr ": " #cr " == 0x%02X\n", (unsigned)sr); \
-        f = (sr & 0x01) * FLAG_CRY; \
-        sr = (sr >> 1) | (sr & 0x80); \
-        if (!sr) \
-            f |= FLAG_ZERO; \
+        r_f = (r_##sr & 0x01) << 4; \
+        r_##sr = (int8_t)r_##sr >> 1; \
+        if (!r_##sr) \
+            r_f |= FLAG_ZERO; \
     }
 
 #define SRL(sr, cr) \
     static void srl_##sr(void) \
     { \
-        os_print("SRL " #cr ": " #cr " == 0x%02X\n", (unsigned)sr); \
-        f = (sr & 0x01) * FLAG_CRY; \
-        sr >>= 1; \
-        if (!sr) \
-            f |= FLAG_ZERO; \
+        r_f = (r_##sr & 0x01) << 4; \
+        r_##sr >>= 1; \
+        if (!r_##sr) \
+            r_f |= FLAG_ZERO; \
     }
 
 #define SWAP(sr, cr) \
     static void swap_##sr(void) \
     { \
-        os_print("SWAP " #cr ": " #cr " == 0x%02X\n", (unsigned)sr); \
-        if (!sr) \
-            f = FLAG_ZERO; \
+        if (!r_##sr) \
+            r_f = FLAG_ZERO; \
         else \
         { \
-            sr = (sr << 4) | (sr >> 4); \
-            f = 0; \
+            r_##sr = (r_##sr << 4) | (r_##sr >> 4); \
+            r_f = 0; \
         } \
     }
-
-
-
-#else
-
-
-
-#define RLC(sr, cr) \
-    static void rlc_##sr(void) \
-    { \
-        f = (sr & 0x80) ? FLAG_CRY : 0; \
-        __asm__ __volatile__ ("rol $1,%%al" : "=a"(sr) : "a"(sr)); \
-        if (!sr) \
-            f |= FLAG_ZERO; \
-    }
-
-#define RRC(sr, cr) \
-    static void rrc_##sr(void) \
-    { \
-        f = (sr & 0x01) * FLAG_CRY; \
-        __asm__ __volatile__ ("ror $1,%%al" : "=a"(sr) : "a"(sr)); \
-        if (!sr) \
-            f |= FLAG_ZERO; \
-    }
-
-#define RL(sr, cr) \
-    static void rl_##sr(void) \
-    { \
-        int cry = f & FLAG_CRY; \
-        f = (sr & 0x80) ? FLAG_CRY : 0; \
-        sr = ((sr << 1) & 0xFF) | !!cry; \
-        if (!sr) \
-            f |= FLAG_ZERO; \
-    }
-
-#define RR(sr, cr) \
-    static void rr_##sr(void) \
-    { \
-        int cry = f & FLAG_CRY; \
-        f = (sr & 0x01) * FLAG_CRY; \
-        sr = (sr >> 1) | (!!cry << 7); \
-        if (!sr) \
-            f |= FLAG_ZERO; \
-    }
-
-#define SLA(sr, cr) \
-    static void sla_##sr(void) \
-    { \
-        f = (sr & 0x80) ? FLAG_CRY : 0; \
-        sr <<= 1; \
-        if (!sr) \
-            f |= FLAG_ZERO; \
-    }
-
-#define SRA(sr, cr) \
-    static void sra_##sr(void) \
-    { \
-        f = (sr & 0x01) * FLAG_CRY; \
-        sr = (sr >> 1) | (sr & 0x80); \
-        if (!sr) \
-            f |= FLAG_ZERO; \
-    }
-
-#define SRL(sr, cr) \
-    static void srl_##sr(void) \
-    { \
-        f = (sr & 0x01) * FLAG_CRY; \
-        sr >>= 1; \
-        if (!sr) \
-            f |= FLAG_ZERO; \
-    }
-
-#define SWAP(sr, cr) \
-    static void swap_##sr(void) \
-    { \
-        if (!sr) \
-            f = FLAG_ZERO; \
-        else \
-        { \
-            sr = (sr << 4) | (sr >> 4); \
-            f = 0; \
-        } \
-    }
-
-#endif
 
 #ifdef USE_EXT_ASM
 void rlc_a(void);
@@ -299,134 +202,86 @@ SWAP(l, L)
 
 static void rlc__hl(void)
 {
-    uint8_t val;
-
-    #ifdef DUMP
-    os_print("RLC (HL): HL == 0x%04X\n", (unsigned)hl);
-    #endif
-
-    val = mem_readb(hl);
-    f = (val & 0x80) ? FLAG_CRY : 0;
+    uint8_t val = mem_readb(r_hl);
+    r_f = (val & 0x80U) >> (7 - FS_CRY);
     __asm__ __volatile__ ("rol $1,%%al" : "=a"(val) : "a"(val));
     if (!val)
-        f |= FLAG_ZERO;
-    mem_writeb(hl, val);
+        r_f |= FLAG_ZERO;
+    mem_writeb(r_hl, val);
 }
 
 static void rrc__hl(void)
 {
-    uint8_t val;
-
-    #ifdef DUMP
-    os_print("RRC (HL): HL == 0x%04X\n", (unsigned)hl);
-    #endif
-
-    val = mem_readb(hl);
-    f = (val & 0x01) * FLAG_CRY;
+    uint8_t val = mem_readb(r_hl);
+    r_f = (val & 0x01) << FS_CRY;
     __asm__ __volatile__ ("ror $1,%%al" : "=a"(val) : "a"(val));
     if (!val)
-        f |= FLAG_ZERO;
-    mem_writeb(hl, val);
+        r_f |= FLAG_ZERO;
+    mem_writeb(r_hl, val);
 }
 
 static void rl__hl(void)
 {
-    int cry = f & FLAG_CRY;
-    uint8_t val;
-
-    #ifdef DUMP
-    os_print("RL (HL): HL == 0x%04X\n", (unsigned)hl);
-    #endif
-
-    val = mem_readb(hl);
-    f = (val & 0x80) ? FLAG_CRY : 0;
-    val = ((val << 1) & 0xFF) | !!cry;
+    int cry = r_f & FLAG_CRY;
+    uint8_t val = mem_readb(r_hl);
+    r_f = (val & 0x80U) >> (7 - FS_CRY);
+    val = ((val << 1) & 0xFF) | (cry >> FS_CRY);
     if (!val)
-        f |= FLAG_ZERO;
-    mem_writeb(hl, val);
+        r_f |= FLAG_ZERO;
+    mem_writeb(r_hl, val);
 }
 
 static void rr__hl(void)
 {
-    int cry = f & FLAG_CRY;
-    uint8_t val;
-
-    #ifdef DUMP
-    os_print("RR (HL): HL == 0x%04X\n", (unsigned)hl);
-    #endif
-
-    val = mem_readb(hl);
-    f = (val & 0x01) ? FLAG_CRY : 0;
-    val = (val >> 1) | (!!cry << 7);
+    int cry = r_f & FLAG_CRY;
+    uint8_t val = mem_readb(r_hl);
+    r_f = (val & 0x01) << FS_CRY;
+    val = (val >> 1) | (cry << (7 - FS_CRY));
     if (!val)
-        f |= FLAG_ZERO;
-    mem_writeb(hl, val);
+        r_f |= FLAG_ZERO;
+    mem_writeb(r_hl, val);
 }
 
 static void sla__hl(void)
 {
-    uint8_t val;
-
-    #ifdef DUMP
-    os_print("SLA (HL): HL == 0x%04X\n", (unsigned)hl);
-    #endif
-
-    val = mem_readb(hl);
-    f = (val & 0x80) ? FLAG_CRY : 0;
+    uint8_t val = mem_readb(r_hl);
+    r_f = (val & 0x80U) >> (7 - FS_CRY);
     val <<= 1;
     if (!val)
-        f |= FLAG_ZERO;
-    mem_writeb(hl, val);
+        r_f |= FLAG_ZERO;
+    mem_writeb(r_hl, val);
 }
 
 static void sra__hl(void)
 {
-    uint8_t val;
-
-    #ifdef DUMP
-    os_print("SRA (HL): HL == 0x%04X\n", (unsigned)hl);
-    #endif
-
-    val = mem_readb(hl);
-    f = (val & 0x01) * FLAG_CRY;
-    val = (val >> 1) | (val & 0x80);
+    uint8_t val = mem_readb(r_hl);
+    r_f = (val & 0x01) << FS_CRY;
+    val = (int8_t)val >> 1;
     if (!val)
-        f |= FLAG_ZERO;
-    mem_writeb(hl, val);
+        r_f |= FLAG_ZERO;
+    mem_writeb(r_hl, val);
 }
 
 static void srl__hl(void)
 {
-    uint8_t val;
-
-    #ifdef DUMP
-    os_print("SRL (HL): HL == 0x%04X\n", (unsigned)hl);
-    #endif
-
-    val = mem_readb(hl);
-    f = (val & 0x01) * FLAG_CRY;
+    uint8_t val = mem_readb(r_hl);
+    r_f = (val & 0x01) << FS_CRY;
     val >>= 1;
     if (!val)
-        f |= FLAG_ZERO;
-    mem_writeb(hl, val);
+        r_f |= FLAG_ZERO;
+    mem_writeb(r_hl, val);
 }
 
 static void swap__hl(void)
 {
-    uint8_t val;
-
-    #ifdef DUMP
-    os_print("SWAP (HL): HL == 0x%04X\n", (unsigned)hl);
-    #endif
-
-    val = mem_readb(hl);
+    uint8_t val = mem_readb(r_hl);
     if (!val)
-        f = FLAG_ZERO;
+        r_f = FLAG_ZERO;
     else
     {
         val = (val << 4) | (val >> 4);
-        f = 0;
-        mem_writeb(hl, val);
+        r_f = 0;
+        mem_writeb(r_hl, val);
     }
 }
 #endif
