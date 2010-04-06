@@ -14,7 +14,7 @@ void generate_interrupts(void)
 
     want_ints_to_be = 0;
     ints_enabled = 0;
-    push(ip);
+    push(r_ip);
 
     if (cause & INT_P10_P13) // Hi-Lo of P10-P13
     {
@@ -66,18 +66,18 @@ void generate_interrupts(void)
     switch (cause)
     {
         case INT_VBLANK:
-            ip = 0x40;
+            r_ip = 0x40;
             break;
         case INT_LCDC_STAT:
-            ip = 0x48;
+            r_ip = 0x48;
             break;
         case INT_TIMER:
-            ip = 0x50;
+            r_ip = 0x50;
             break;
         case INT_SERIAL:
-            ip = 0x58;
+            r_ip = 0x58;
             break;
         case INT_P10_P13:
-            ip = 0x60;
+            r_ip = 0x60;
     }
 }

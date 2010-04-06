@@ -81,8 +81,6 @@ void draw_line(int line)
     int sx = io_regs->scx, sy = io_regs->scy;
     int abs_line = (line + sy) & 0xFF;
 
-    os_handle_events();
-
     if (!(io_regs->lcdc & (1 << 7)))
         return;
 
@@ -224,6 +222,8 @@ void draw_line(int line)
 
     if (line == 143)
     {
+        os_handle_events();
+
         #ifdef DISPLAY_ALL
         for (int rem = 144; rem < 256; rem++)
             draw_line(rem);

@@ -80,7 +80,7 @@ struct io
 
 extern struct io *io_regs;
 extern int card_type, rom_size, ram_size;
-extern uint16_t _ip, _sp, _af, _bc, _de, _hl;
+extern uint16_t r_ip, r_sp, r_af, r_bc, r_de, r_hl;
 extern int ints_enabled, want_ints_to_be, lcd_on, double_speed;
 extern volatile int interrupt_issued, keystates;
 extern uint32_t tsc_resolution;
@@ -92,20 +92,14 @@ extern uint8_t *int_ram, *oam_io, *vidram, *int_wram, *full_int_wram, *full_vidr
 extern uint16_t bpalette[32], opalette[32];
 extern uint8_t *btm[2], *bwtd[2], *wtm[2];
 extern int hdma_on, boost;
-#define ip _ip
-#define sp _sp
-#define af _af
-#define bc _bc
-#define de _de
-#define hl _hl
-#define a (((uint8_t *)&_af)[1])
-#define b (((uint8_t *)&_bc)[1])
-#define c (((uint8_t *)&_bc)[0])
-#define d (((uint8_t *)&_de)[1])
-#define e (((uint8_t *)&_de)[0])
-#define f (((uint8_t *)&_af)[0])
-#define h (((uint8_t *)&_hl)[1])
-#define l (((uint8_t *)&_hl)[0])
+#define r_a (((uint8_t *)&r_af)[1])
+#define r_b (((uint8_t *)&r_bc)[1])
+#define r_c (((uint8_t *)&r_bc)[0])
+#define r_d (((uint8_t *)&r_de)[1])
+#define r_e (((uint8_t *)&r_de)[0])
+#define r_f (((uint8_t *)&r_af)[0])
+#define r_h (((uint8_t *)&r_hl)[1])
+#define r_l (((uint8_t *)&r_hl)[0])
 
 #define KEY_A      (1 << 0)
 #define KEY_B      (1 << 1)
@@ -120,10 +114,14 @@ extern int hdma_on, boost;
 #define KEY_DIR (1 << 4)
 #define KEY_OTH (1 << 5)
 
-#define FLAG_ZERO (1 << 7)
-#define FLAG_SUB  (1 << 6)
-#define FLAG_HCRY (1 << 5)
-#define FLAG_CRY  (1 << 4)
+#define FS_ZERO   7
+#define FS_SUB    6
+#define FS_HCRY   5
+#define FS_CRY    4
+#define FLAG_ZERO (1U << FS_ZERO)
+#define FLAG_SUB  (1U << FS_SUB)
+#define FLAG_HCRY (1U << FS_HCRY)
+#define FLAG_CRY  (1U << FS_CRY)
 
 #define INT_P10_P13   (1 << 4)
 #define INT_SERIAL    (1 << 3)
