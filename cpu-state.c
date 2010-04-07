@@ -19,3 +19,4 @@ uint16_t bpalette[32], opalette[32];
 uint8_t *btm[2] = { NULL }, *bwtd[2] = { NULL }, *wtm[2] = { NULL };
 
 int hdma_on = 0, boost = 0;
+int doy_diff = 0, hour_diff = 0, min_diff = 0, sec_diff = 0;

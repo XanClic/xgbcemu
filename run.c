@@ -42,6 +42,7 @@ static void prefix0x10(void)
                 double_speed ^= 1;
                 os_print("Using %s speed\n", double_speed ? "double" : "single");
             }
+            break;
         default:
             os_eprint("Unknown opcode 0x%02X, prefixed by 0x10.\n", (unsigned)mem_readb(r_ip));
             exit_err();
@@ -1114,6 +1115,7 @@ void run(void)
     #endif
 
     init_video();
+    install_shell_handler(&enter_shell); // e.g., Ctrl-C
 
     r_ip = 0x0100;
     r_sp = 0xFFFE;

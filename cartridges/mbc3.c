@@ -87,19 +87,19 @@ void mbc3_rom_write(uintptr_t addr, uint8_t val)
             switch (sel)
             {
                 case 8:
-                    ram_val = current_seconds();;
+                    ram_val = set_seconds();;
                     break;
                 case 9:
-                    ram_val = current_minutes();
+                    ram_val = set_minutes();
                     break;
                 case 10:
-                    ram_val = current_hour();
+                    ram_val = set_hour();
                     break;
                 case 11:
-                    ram_val = current_day_of_year() & 0xFF;
+                    ram_val = set_day_of_year() & 0xFF;
                     break;
                 case 12:
-                    ram_val = day_cry_set | ((current_day_of_year() & 0x100) >> 8);
+                    ram_val = day_cry_set | ((set_day_of_year() & 0x100) >> 8);
             }
 
             ext_ram_ptr = NULL;
