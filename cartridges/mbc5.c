@@ -1,5 +1,4 @@
 #include <stdint.h>
-#include <stdlib.h>
 
 #include "gbc.h"
 
@@ -27,7 +26,7 @@ void mbc5_rom_write(uintptr_t addr, uint8_t val)
         else
             ext_ram_ptr = NULL;
     }
-    if (addr < 0x3000)
+    else if (addr < 0x3000)
     {
         current_rom_bank &= 0x100;
         current_rom_bank |= val;
@@ -55,13 +54,13 @@ uint8_t mbc5_rom_read(uintptr_t addr)
 void mbc5_load(void)
 {
     for (int i = 0; i < ram_size; i++)
-        ram_banks[i] = malloc(8192);
+        ram_banks[i] = alloc_cmem(8192);
     ext_ram_ptr = ram_banks[0];
 
     for (int i = 0; i < rom_size; i++)
     {
-        rom_banks[i] = malloc(16384);
-        fread(rom_banks[i], 1024, 16, fp);
+        rom_banks[i] = alloc_cmem(16384);
+        os_file_read(fp, 16384, rom_banks[i]);
     }
     base_rom_ptr = rom_banks[0];
     rom_bank_ptr = rom_banks[1];
