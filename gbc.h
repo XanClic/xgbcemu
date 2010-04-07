@@ -92,6 +92,7 @@ extern uint8_t *int_ram, *oam_io, *vidram, *int_wram, *full_int_wram, *full_vidr
 extern uint16_t bpalette[32], opalette[32];
 extern uint8_t *btm[2], *bwtd[2], *wtm[2];
 extern int hdma_on, boost;
+extern int doy_diff, hour_diff, min_diff, sec_diff;
 #define r_a (((uint8_t *)&r_af)[1])
 #define r_b (((uint8_t *)&r_bc)[1])
 #define r_c (((uint8_t *)&r_bc)[0])
@@ -138,6 +139,11 @@ extern int hdma_on, boost;
 #define VK_UP     (KEY_UP    << 4)
 #define VK_DOWN   (KEY_DOWN  << 4)
 
+#define set_day_of_year() (current_day_of_year() + doy_diff )
+#define set_hour()        (current_hour()        + hour_diff)
+#define set_minutes()     (current_minutes()     + min_diff )
+#define set_seconds()     (current_seconds()     + sec_diff )
+
 static inline int pal2rgb(int pal)
 {
     return ((pal & 0x1F) << 19) | (((pal >> 5) & 0x1F) << 11) | ((pal >> 10) << 3);
@@ -145,6 +151,7 @@ static inline int pal2rgb(int pal)
 
 
 void draw_line(int line);
+void enter_shell(void);
 void generate_interrupts(void);
 void hdma_copy_16b(void);
 void init_memory(void);
