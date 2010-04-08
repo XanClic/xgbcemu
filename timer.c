@@ -10,9 +10,14 @@ static const int collect_overflow[4] =
      64  //  16384 Hz
 };
 
+#ifdef ENABLE_LINK
+int link_countdown = 0;
+#endif
+
 void update_timer(int cycles_gone)
 {
     static int collected = 0, vsync_collect = 0, div_collect = 0, redrawed = 0;
+    static int serial_poll_collect = 0;
     int hblank_start = 0;
 
     div_collect += cycles_gone;
@@ -49,6 +54,17 @@ void update_timer(int cycles_gone)
         while (vsync_collect >= 114) // Eine Zeile wäre jetzt fertig
         {
             vsync_collect -= 114;
+
+            #ifdef ENABLE_LINK
+            if (!link_countdown && (++serial_poll_collect >= 10))
+            {
+                serial_poll_collect = 0;
+                if (server != INVALID_CONN_VALUE)
+                    tcp_server_poll(server);
+                if (current_connection != INVALID_CONN_VALUE)
+                    tcp_conn_poll(current_connection);
+            }
+            #endif
 
             hblank_start = 1;
             if (hdma_on)
@@ -91,7 +107,16 @@ void update_timer(int cycles_gone)
         if (!++io_regs->tima)
         {
             io_regs->tima = io_regs->tma;
-            io_regs->int_flag = INT_TIMER;
+            io_regs->int_flag |= INT_TIMER;
         }
     }
+
+    #ifdef ENABLE_LINK
+    if (link_countdown)
+    {
+        link_countdown -= cycles_gone;
+        if (link_countdown <= 0)
+            link_clock();
+    }
+    #endif
 }

@@ -41,5 +41,56 @@ void enter_shell(void)
                 sec_diff = new_sec - sec;
             unlatch_time();
         }
+        else if (!strcmp(input, "kill"))
+            exit_err();
+        #ifdef ENABLE_LINK
+        else if (!strncmp(input, "link ", 5))
+        {
+            char *cmd = &input[5];
+            while (*cmd && (*cmd == ' '));
+            if (!*cmd)
+            {
+                os_eprint("“link” needs (at least) one parameter!\n");
+                continue;
+            }
+
+            if (!strncmp(cmd, "plug ", 5))
+            {
+                if (current_connection != INVALID_CONN_VALUE)
+                {
+                    os_eprint("There's already a link cable plugged in. Unplug it before attaching a new one.\n");
+                    continue;
+                }
+
+                cmd = &cmd[5];
+                while (*cmd && (*cmd == ' '));
+                if (!*cmd)
+                {
+                    os_eprint("“link plug” needs one further parameter!\n");
+                    continue;
+                }
+
+                link_connect(cmd);
+            }
+            else if (!strcmp(cmd, "unplug"))
+            {
+                if (current_connection == INVALID_CONN_VALUE)
+                    os_eprint("There's no active connection.\n");
+                else
+                    link_unplug();
+            }
+            else if (!strcmp(cmd, "status"))
+            {
+                if (current_connection == INVALID_CONN_VALUE)
+                    os_eprint("No cable attached.\n");
+                else
+                    os_eprint("Cable attached.\n");
+            }
+            else
+                os_eprint("Unknown “link” parameter.\n");
+        }
+        #endif
+        else
+            os_eprint("Unknown command.\n");
     }
 }

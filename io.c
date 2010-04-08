@@ -322,11 +322,49 @@ static void ly(void)
     io_regs->ly = 0;
 }
 
+#ifdef ENABLE_LINK
+extern int link_countdown;
+extern int bits_to_be_transferred;
+
+void serial_data(uint8_t val)
+{
+    io_regs->sb = val;
+}
+
+void serial_control(uint8_t val)
+{
+    if (val & (1 << 7))
+    {
+        if (bits_to_be_transferred && (bits_to_be_transferred < 8))
+            return;
+        if (current_connection == INVALID_CONN_VALUE)
+            os_eprint("Tried to initiate serial transfer without link cable.\n");
+        else
+        {
+            bits_to_be_transferred = 8;
+            if (val & 1)
+                link_countdown = 128;
+            else
+            {
+                link_countdown = 0;
+                link_start_ext_transfer();
+            }
+        }
+    }
+    io_regs->sc = val & 0x81;
+}
+#endif
+
 static void (*const io_handlers[256])(uint8_t value) =
 {
     &p1, // p1
+    #ifdef ENABLE_LINK
+    &serial_data, // sb
+    &serial_control, // sc
+    #else
     (void (*)(uint8_t))&nop, // sb
     (void (*)(uint8_t))&nop, // sc
+    #endif
     (void (*)(uint8_t))&nop, // rsvd1
     (void (*)(uint8_t))&divreg, // div
     (void (*)(uint8_t))&nop, // tima
