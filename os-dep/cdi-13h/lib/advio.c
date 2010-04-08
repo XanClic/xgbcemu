@@ -43,8 +43,6 @@ void os_open_screen(int width, int height)
 
     scr_width = width;
 
-    memset(screen, 0, 64000);
-
     old_vga_palette = malloc(1024);
 
     for (int color = 0x00; color <= 0xFF; color++)
@@ -62,6 +60,8 @@ void os_open_screen(int width, int height)
         cdi_outb(0x3C9, ((color & 0x1C) >> 2) *  9);
         cdi_outb(0x3C9,  (color & 0x03)       * 21);
     }
+
+    memset(screen, 0xE8, 64000);
 }
 
 static void leave_13h(void)
@@ -163,12 +163,12 @@ void os_draw_line(int offx, int offy, int line)
         }
     }
 
-    line *= 320;
+    line = (line + 28) * 320;
 
     for (int x = 0; x < scr_width; x++)
     {
         int px = (x + offx) & 0xFF;
         uint32_t col = ((uint32_t *)vidmem)[py + px];
-        screen[line + x] = (((col & 0xFF0000) >> 16) & 0xE0) | (((col & 0xFF00) >> 11) & 0x1C) | ((col & 0xFF) >> 6);
+        screen[line + x + 80] = (((col & 0xFF0000) >> 16) & 0xE0) | (((col & 0xFF00) >> 11) & 0x1C) | ((col & 0xFF) >> 6);
     }
 }
