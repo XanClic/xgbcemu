@@ -17,7 +17,9 @@ int link_countdown = 0;
 void update_timer(int cycles_gone)
 {
     static int collected = 0, vsync_collect = 0, div_collect = 0, redrawed = 0;
+    #ifdef ENABLE_LINK
     static int serial_poll_collect = 0;
+    #endif
     int hblank_start = 0;
 
     div_collect += cycles_gone;

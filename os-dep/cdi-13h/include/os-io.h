@@ -21,7 +21,7 @@ typedef FILE *file_obj;
 #define os_file_write(file, size, buffer) fwrite(buffer, 1, size, file)
 #define os_file_setpos(file, position)    fseek(file, position, SEEK_SET)
 
-#define install_shell_handler()
+#define install_shell_handler(par)
 
 int os_get_integer(void);
 void os_get_line(char *buffer, size_t length);
