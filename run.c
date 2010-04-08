@@ -1117,6 +1117,13 @@ void run(void)
     init_video();
     install_shell_handler(&enter_shell); // e.g., Ctrl-C
 
+    #ifdef ENABLE_LINK
+    set_tcp_callbacks(&link_data_arrived, &new_client);
+    server = create_tcp_server(LINK_PORT);
+    if (server == INVALID_CONN_VALUE)
+        os_eprint("Warning: Could not initialise link cable slot.\n");
+    #endif
+
     r_ip = 0x0100;
     r_sp = 0xFFFE;
     r_af = 0x11B0;
@@ -1124,6 +1131,8 @@ void run(void)
     r_de = 0xFF56;
     r_hl = 0x000D;
 
+    io_regs->sb = 0xFF;
+    io_regs->sc = 0x00;
     io_regs->tima = 0x00;
     io_regs->tma = 0x00;
     io_regs->tac = 0x00;

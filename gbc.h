@@ -93,6 +93,12 @@ extern uint16_t bpalette[32], opalette[32];
 extern uint8_t *btm[2], *bwtd[2], *wtm[2];
 extern int hdma_on, boost;
 extern int doy_diff, hour_diff, min_diff, sec_diff;
+#ifdef ENABLE_LINK
+extern tcp_server_t server;
+extern tcp_connection_t current_connection;
+extern volatile int waiting_for_conn_ack;
+extern int connection_master;
+#endif
 #define r_a (((uint8_t *)&r_af)[1])
 #define r_b (((uint8_t *)&r_bc)[1])
 #define r_c (((uint8_t *)&r_bc)[0])
@@ -144,6 +150,8 @@ extern int doy_diff, hour_diff, min_diff, sec_diff;
 #define set_minutes()     (current_minutes()     + min_diff )
 #define set_seconds()     (current_seconds()     + sec_diff )
 
+#define LINK_PORT 4224
+
 static inline int pal2rgb(int pal)
 {
     return ((pal & 0x1F) << 19) | (((pal >> 5) & 0x1F) << 11) | ((pal >> 10) << 3);
@@ -157,12 +165,18 @@ void hdma_copy_16b(void);
 void init_memory(void);
 void init_video(void);
 void io_outb(uint8_t reg, uint8_t val);
+void link_clock(void);
+void link_connect(const char *dest);
+void link_data_arrived(tcp_connection_t conn, void *data, size_t size);
+void link_start_ext_transfer(void);
+void link_unplug(void);
 void load_memory(void);
 void load_rom(const char *fname, const char *sname);
 void mem_writeb(uintptr_t addr, uint8_t value);
 void mem_writew(uintptr_t addr, uint16_t value);
 uint8_t mem_readb(uintptr_t addr);
 uint16_t mem_readw(uintptr_t addr);
+void new_client(tcp_connection_t conn);
 uint16_t pop(void);
 void push(uint16_t value);
 void redraw(void);

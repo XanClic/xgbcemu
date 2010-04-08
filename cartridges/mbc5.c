@@ -43,6 +43,8 @@ void mbc5_rom_write(uintptr_t addr, uint8_t val)
         current_ram_bank = val & 0xF;
         ext_ram_ptr = ram_banks[current_ram_bank];
     }
+    else
+        os_eprint("[mbc5] Unhandled ROM write\n");
 }
 
 uint8_t mbc5_rom_read(uintptr_t addr)

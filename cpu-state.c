@@ -1,6 +1,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "os-advio.h"
+#include "os-def.h"
 #include "os-io.h"
 
 void *io_regs = NULL;
@@ -20,3 +22,9 @@ uint8_t *btm[2] = { NULL }, *bwtd[2] = { NULL }, *wtm[2] = { NULL };
 
 int hdma_on = 0, boost = 0;
 int doy_diff = 0, hour_diff = 0, min_diff = 0, sec_diff = 0;
+#ifdef ENABLE_LINK
+tcp_server_t server;
+tcp_connection_t current_connection = INVALID_CONN_VALUE;
+volatile int waiting_for_conn_ack = 0;
+int connection_master = 0;
+#endif
