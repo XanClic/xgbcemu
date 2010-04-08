@@ -61,7 +61,7 @@ void os_open_screen(int width, int height)
         cdi_outb(0x3C9,  (color & 0x03)       * 21);
     }
 
-    memset(screen, 0xE8, 64000);
+    memset(screen, 0xFF, 64000);
 }
 
 static void leave_13h(void)
