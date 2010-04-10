@@ -8,5 +8,6 @@
 
 #define alloc_mem(size)  malloc(size)
 #define alloc_cmem(size) calloc(1, size)
+#define free_mem(mem)    free(mem)
 
 #endif

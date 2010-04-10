@@ -4,7 +4,7 @@
     static void rlc_##sr(void) \
     { \
         r_f = (r_##sr & 0x80U) >> 3; \
-        __asm__ __volatile__ ("rol $1,%%al" : "=a"(r_##sr) : "a"(r_##sr)); \
+        r_##sr = (r_##sr << 1) | (r_##sr >> 7); \
         if (!r_##sr) \
             r_f |= FLAG_ZERO; \
     }
@@ -13,7 +13,7 @@
     static void rrc_##sr(void) \
     { \
         r_f = (r_##sr & 0x01) << 4; \
-        __asm__ __volatile__ ("ror $1,%%al" : "=a"(r_##sr) : "a"(r_##sr)); \
+        r_##sr = (r_##sr >> 1) | (r_##sr << 7); \
         if (!r_##sr) \
             r_f |= FLAG_ZERO; \
     }
@@ -204,7 +204,7 @@ static void rlc__hl(void)
 {
     uint8_t val = mem_readb(r_hl);
     r_f = (val & 0x80U) >> (7 - FS_CRY);
-    __asm__ __volatile__ ("rol $1,%%al" : "=a"(val) : "a"(val));
+    val = (val << 1) | (val >> 7);
     if (!val)
         r_f |= FLAG_ZERO;
     mem_writeb(r_hl, val);
@@ -214,7 +214,7 @@ static void rrc__hl(void)
 {
     uint8_t val = mem_readb(r_hl);
     r_f = (val & 0x01) << FS_CRY;
-    __asm__ __volatile__ ("ror $1,%%al" : "=a"(val) : "a"(val));
+    val = (val >> 1) | (val << 7);
     if (!val)
         r_f |= FLAG_ZERO;
     mem_writeb(r_hl, val);

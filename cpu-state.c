@@ -7,7 +7,7 @@
 
 void *io_regs = NULL;
 uint16_t r_ip, r_sp, r_af, r_bc, r_de, r_hl;
-int rom_size, ram_size, ints_enabled = 1, want_ints_to_be = 1, lcd_on = 1, double_speed = 0;
+int rom_size, ram_size, ints_enabled = 1, want_ints_to_be = 1, lcd_on = 1, double_speed = 0, gbc_mode;
 volatile int interrupt_issued = 0, keystates = 0;
 uint32_t tsc_resolution = 0;
 void *vidmem = NULL;

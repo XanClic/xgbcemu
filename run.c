@@ -1124,12 +1124,24 @@ void run(void)
         os_eprint("Warning: Could not initialise link cable slot.\n");
     #endif
 
-    r_ip = 0x0100;
-    r_sp = 0xFFFE;
-    r_af = 0x11B0;
-    r_bc = 0x0000;
-    r_de = 0xFF56;
-    r_hl = 0x000D;
+    if (gbc_mode)
+    {
+        r_ip = 0x0100;
+        r_sp = 0xFFFE;
+        r_af = 0x11B0;
+        r_bc = 0x0000;
+        r_de = 0xFF56;
+        r_hl = 0x000D;
+    }
+    else
+    {
+        r_ip = 0x0100;
+        r_sp = 0xFFFE;
+        r_af = 0x01B0;
+        r_bc = 0x0013;
+        r_de = 0x00D8;
+        r_hl = 0x014D;
+    }
 
     io_regs->sb = 0xFF;
     io_regs->sc = 0x00;

@@ -81,7 +81,7 @@ struct io
 extern struct io *io_regs;
 extern int card_type, rom_size, ram_size;
 extern uint16_t r_ip, r_sp, r_af, r_bc, r_de, r_hl;
-extern int ints_enabled, want_ints_to_be, lcd_on, double_speed;
+extern int ints_enabled, want_ints_to_be, lcd_on, double_speed, gbc_mode;
 extern volatile int interrupt_issued, keystates;
 extern uint32_t tsc_resolution;
 extern void *vidmem;
