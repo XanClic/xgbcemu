@@ -89,11 +89,9 @@ void draw_line(int line)
     else
         draw_bg_line(abs_line, 0 << 7);
 
-    if ((io_regs->lcdc & (1 << 5)) && (io_regs->wx >= 7) && (io_regs->wx <= 166) && (io_regs->wy <= 143) && (io_regs->wy >= line))
+    if ((io_regs->lcdc & (1 << 5)) && (io_regs->wx >= 7) && (io_regs->wx <= 166) && (io_regs->wy <= 143) && (io_regs->wy <= line))
     {
-        // TODO
-        /*
-        int wx = io_regs->wx - 7, wy = io_regs->wy;
+        int wx = io_regs->wx + sx - 7, wy = io_regs->wy + sy;
         int yoff = line - wy;
         int by = yoff & 0xF8, ry = yoff & 0x07;
         int tile = by * 4;
@@ -145,7 +143,6 @@ void draw_line(int line)
 
             tile++;
         }
-        */
     }
 
     if (io_regs->lcdc & (1 << 1))

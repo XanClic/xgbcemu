@@ -2,6 +2,8 @@
 
 #include "gbc.h"
 
+// #define DUMP
+
 static int current_ram_bank = 0, current_rom_bank = 1;
 static uint8_t *ram_banks[16] = { NULL }, *rom_banks[512] = { NULL };
 
@@ -31,20 +33,28 @@ void mbc5_rom_write(uintptr_t addr, uint8_t val)
         current_rom_bank &= 0x100;
         current_rom_bank |= val;
         rom_bank_ptr = rom_banks[current_rom_bank];
+        #ifdef DUMP
+        os_print("[mbc5] Switched to ROM bank %i\n", current_rom_bank);
+        #endif
     }
     else if (addr < 0x4000)
     {
         current_rom_bank &= 0x0FF;
         current_rom_bank |= (val & 1) << 8;
         rom_bank_ptr = rom_banks[current_rom_bank];
+        #ifdef DUMP
+        os_print("[mbc5] Switched to ROM bank %i\n", current_rom_bank);
+        #endif
     }
     else if (addr < 0x6000)
     {
         current_ram_bank = val & 0xF;
         ext_ram_ptr = ram_banks[current_ram_bank];
     }
+    #ifdef DUMP
     else
-        os_eprint("[mbc5] Unhandled ROM write\n");
+        os_print("[mbc5] Unhandled ROM write 0x%02X to 0x%04X\n", val, addr);
+    #endif
 }
 
 uint8_t mbc5_rom_read(uintptr_t addr)
