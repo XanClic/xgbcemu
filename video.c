@@ -89,9 +89,9 @@ void draw_line(int line)
     else
         draw_bg_line(abs_line, 0 << 7);
 
-    if ((io_regs->lcdc & (1 << 5)) && (io_regs->wx >= 7) && (io_regs->wx <= 166) && (io_regs->wy <= 143) && (io_regs->wy <= line))
+    if ((io_regs->lcdc & (1 << 5)) && (io_regs->wx >= 7) && (io_regs->wx <= 166) && (io_regs->wy <= line))
     {
-        int wx = io_regs->wx + sx - 7, wy = io_regs->wy + sy;
+        int wx = io_regs->wx + sx - 7, wy = io_regs->wy;
         int yoff = line - wy;
         int by = yoff & 0xF8, ry = yoff & 0x07;
         int tile = by * 4;
@@ -99,9 +99,6 @@ void draw_line(int line)
         for (int bx = 0; bx < 256; bx += 8)
         {
             int flags = wtm[1][tile];
-
-            if (bx + wx >= 256)
-                break;
 
             uint8_t *tdat;
             int vbank = !!(flags & (1 << 3));
@@ -115,9 +112,6 @@ void draw_line(int line)
             for (int rx = 0; rx < 8; rx++)
             {
                 int val;
-
-                if (bx + rx + wx >= 256)
-                    break;
 
                 switch (flags & (3 << 5))
                 {
@@ -138,7 +132,7 @@ void draw_line(int line)
                         val += !!(tdat[(7 - ry) * 2 + 1] & (1 << rx)) << 1;
                 }
 
-                ((uint32_t *)vidmem)[abs_line * 256 + bx + rx + wx] = pal2rgb(pal[val]);
+                ((uint32_t *)vidmem)[abs_line * 256 + ((bx + rx + wx) & 0xFF)] = pal2rgb(pal[val]);
             }
 
             tile++;

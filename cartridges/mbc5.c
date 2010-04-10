@@ -65,8 +65,24 @@ uint8_t mbc5_rom_read(uintptr_t addr)
 
 void mbc5_load(void)
 {
-    for (int i = 0; i < ram_size; i++)
-        ram_banks[i] = alloc_cmem(8192);
+    uint8_t *base = NULL;
+    #ifdef MAP_BATTERY
+    base = os_map_file_into_memory(save, ram_size * 8192);
+    if (base != NULL)
+        for (int i = 0; i < ram_size; i++)
+            ram_banks[i] = base + i * 8192;
+    #endif
+    if (base == NULL)
+    {
+        os_file_setpos(save, 0);
+        for (int i = 0; i < ram_size; i++)
+        {
+            ram_banks[i] = alloc_cmem(8192);
+            os_file_read(save, 8192, ram_banks[i]);
+        }
+
+        printf("[mbc5] Battery won't be saved automatically, use space to save its content.\n");
+    }
     ext_ram_ptr = ram_banks[0];
 
     for (int i = 0; i < rom_size; i++)
@@ -80,6 +96,9 @@ void mbc5_load(void)
 
 void mbc5_save(void)
 {
-    os_eprint("No MBC5 save handler\n");
-    exit_err();
+    os_file_setpos(save, 0);
+    for (int i = 0; i < ram_size; i++)
+        os_file_write(save, 8192, ram_banks[i]);
+
+    printf("[mbc5] Battery content written manually.\n");
 }

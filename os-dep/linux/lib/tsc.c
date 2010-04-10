@@ -1,29 +1,36 @@
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <sys/time.h>
 
 #include "gbc.h"
 #include "os-time.h"
 
+#define DURATION_NS 10000ULL
+
 uint32_t determine_tsc_resolution(void)
 {
-    /*
     uint32_t resolutions[10];
 
     for (int i = 0; i < 10; i++)
     {
-        uint64_t rdtsc_start, rdtsc_end;
+        uint64_t rdtsc_start, rdtsc_end, duration;
+        struct timeval tv1, tv2;
 
         __asm__ __volatile__ ("" ::: "memory");
 
+        gettimeofday(&tv1, NULL);
         rdtsc_start = rdtsc();
-        nanosleep(&(struct timespec){ .tv_nsec = 1000000 }, NULL);
+        nanosleep(&(struct timespec){ .tv_nsec = DURATION_NS * 1000 }, NULL);
+        gettimeofday(&tv2, NULL);
         rdtsc_end = rdtsc();
 
         __asm__ __volatile__ ("" ::: "memory");
 
-        resolutions[i] = (rdtsc_end - rdtsc_start);
+        duration = (uint64_t)(tv2.tv_usec - tv1.tv_usec) + (uint64_t)(tv2.tv_sec - tv1.tv_sec) * 1000000ULL;
+        resolutions[i] = (rdtsc_end - rdtsc_start) * DURATION_NS / duration;
     }
 
     printf("Determined TSC resolutions (inc/ms):\n");
@@ -49,27 +56,4 @@ uint32_t determine_tsc_resolution(void)
     printf("Total resolution: %i; removed %i and %i\n", (int)sum, min, max);
 
     return sum;
-    */
-
-    FILE *cpuinfo = fopen("/proc/cpuinfo", "r");
-    if (cpuinfo == NULL)
-    {
-        perror("Could not open /proc/cpuinfo");
-        exit(1);
-    }
-
-    char line[80];
-    do
-        fgets(line, 79, cpuinfo);
-    while (!feof(cpuinfo) && strncmp(line, "cpu MHz", 7));
-
-    if (feof(cpuinfo))
-    {
-        fprintf(stderr, "/proc/cpuinfo doesn't contain a line beginning with \"cpu MHz\".\n");
-        exit(1);
-    }
-
-    fclose(cpuinfo);
-
-    return atof(strchr(line, ':') + 2) * 2000;
 }
