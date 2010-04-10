@@ -102,7 +102,7 @@ static void dec_##reg(void) \
 static void add_hl_##reg(void) \
 { \
     unsigned result = r_hl + r_##reg; \
-    r_f = (r_f & FLAG_ZERO) | ((result & 0x10000) >> (16 - FS_CRY)) | (((r_hl ^ r_bc ^ result) & 0x1000U) >> (12 - FS_HCRY)); \
+    r_f = (r_f & FLAG_ZERO) | ((result & 0x10000) >> (16 - FS_CRY)) | (((r_hl ^ r_##reg ^ result) & 0x1000U) >> (12 - FS_HCRY)); \
     r_hl = (uint16_t)result; \
 }
 

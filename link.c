@@ -16,6 +16,7 @@ static volatile enum
     CLOCK_NAK,
     CLOCK_ACK
 } status = INACTIVE;
+static int last_arrived = 1;
 
 void link_connect(const char *dest)
 {
@@ -48,6 +49,7 @@ void link_unplug(void)
     close_tcp_conn(current_connection);
     current_connection = INVALID_CONN_VALUE;
     os_print("Cable unplugged.\n");
+    last_arrived = 1;
 }
 
 void link_clock(void)
@@ -64,7 +66,7 @@ void link_clock(void)
     {
         status = INACTIVE;
         io_regs->sb >>= 1;
-        io_regs->sb |= 0x80;
+        io_regs->sb |= last_arrived << 7;
         if (--bits_to_be_transferred)
             link_countdown = 128;
         else
@@ -164,7 +166,8 @@ void link_data_arrived(tcp_connection_t conn, void *data, size_t size)
             else if (!strncmp(data, "DATA", 4))
             {
                 io_regs->sb >>= 1;
-                io_regs->sb |= (((char *)data)[4] - '0') << 7;
+                last_arrived = (((char *)data)[4] - '0');
+                io_regs->sb |= last_arrived << 7;
                 status = INACTIVE;
                 if (--bits_to_be_transferred)
                     link_countdown = 128;
@@ -189,7 +192,8 @@ void link_data_arrived(tcp_connection_t conn, void *data, size_t size)
                 sendbuf[4] = (io_regs->sb & 0x01) + '0';
                 tcp_send(current_connection, sendbuf, 6);
                 io_regs->sb >>= 1;
-                io_regs->sb |= (((char *)data)[4] - '0') << 7;
+                last_arrived = (((char *)data)[4] - '0');
+                io_regs->sb |= last_arrived << 7;
                 if (--bits_to_be_transferred)
                     status = EXTERNAL_CLOCK;
                 else

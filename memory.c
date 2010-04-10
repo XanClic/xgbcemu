@@ -4,6 +4,7 @@
 #include "gbc.h"
 
 // #define DUMP
+// #define DUMP_IO
 
 static void no_ramw_handler(uintptr_t addr, uint8_t value);
 static uint8_t no_ramr_handler(uintptr_t addr);
@@ -158,7 +159,12 @@ void mem_writeb(uintptr_t addr, uint8_t value)
         }
     }
     else if (((addr >= 0xFF00) && (addr <= 0xFF55)) || ((addr >= 0xFF68) && (addr <= 0xFF70)) || (addr == 0xFFFF))
+    {
+        #ifdef DUMP_IO
+        os_print("[i/o] 0x%02X -> 0x%04X\n", value, addr);
+        #endif
         io_outb((uint8_t)(addr - 0xFF00), value);
+    }
     else if (addr >= 0xFE00)
         oam_io[addr - 0xFE00] = value;
     else
@@ -198,7 +204,13 @@ uint8_t mem_readb_(uintptr_t addr)
         return rom_bank_ptr[addr - 0x4000];
     }
     else if (addr >= 0xFE00)
+    {
+        #ifdef DUMP_IO
+        if (((addr >= 0xFF00) && (addr <= 0xFF55)) || ((addr >= 0xFF68) && (addr <= 0xFF70)) || (addr == 0xFFFF))
+            os_print("[i/o] 0x%04X -> 0x%02X\n", addr, oam_io[addr - 0xFE00]);
+        #endif
         return oam_io[addr - 0xFE00];
+    }
     else if (addr >= 0xC000)
     {
         if (addr & 0x1000)

@@ -69,10 +69,12 @@ static void lcdc(uint8_t value)
 static void p1(uint8_t value)
 {
     value &= KEY_DIR | KEY_OTH;
+    if (value == (KEY_DIR | KEY_OTH))
+        value = 0xFF;
     if (!(value & KEY_DIR))
-        value |= ~((keystates & 0xF0) >> 4);
+        value |= (~keystates & 0xF0) >> 4;
     if (!(value & KEY_OTH))
-        value |= ~(keystates & 0x0F);
+        value |= ~keystates & 0x0F;
 
     io_regs->p1 = value;
 }
