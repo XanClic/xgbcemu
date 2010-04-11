@@ -140,6 +140,8 @@ As said before, xgbcemu is a Game Boy Color emulator. It emulates a GBC's CPU (Z
 cable, etc. (sound is not emulated, because that would not be portable at all---it would already be hard to find one
 working solution for Linux).
 
+Right now, xgbcemu has been ported to Linux, Windows and a hobby OS called “týndur”.
+
 
 
 \chapter{Using xgbcemu}
@@ -149,9 +151,9 @@ working solution for Linux).
 xgbcemu offers the buttons a GBC has: A, B, Start, Select and of course Up, Down, Left and Right. However, how to press
 those buttons differs on every OS.
 
-\subsection{Linux/SDL}
+\subsection{SDL}
 
-With SDL, the keyboard mapping is as follows:
+With SDL (Both Linux and Windows), the keyboard mapping is as follows:
 
 \begin{itemize}
 \item A is pressed by pressing the according key, same applies to B, Up, Down, Left and Right (using the arrows).
@@ -167,7 +169,7 @@ To quit the program, simply close the window.
 \subsection{CDI-13h}
 
 This mode is for operating systems which support the CDI/BIOS driver interface (i.e., a vm86 function). Though it might
-work on tyndur only, the mapping is as follows:
+work on týndur only, the mapping is as follows:
 
 \begin{itemize}
 \item A is pressed by pressing the according key, same applies to B.
@@ -175,6 +177,7 @@ work on tyndur only, the mapping is as follows:
 \item Select is pressed by using S.
 \item Start is pressed by using the return key.
 \item In order to save the battery content, press the space key.
+\item F to increase the frame skip ratio, Shift+F to decrease it.
 \end{itemize}
 
 In order to quit the program (which is in full-screen mode here), press Q.
@@ -209,21 +212,20 @@ This command is for manipulating the link cable. See the according section for d
 
 \section{Speed}
 
-xgbcemu running on a relatively modern computer with Linux/SDL should be a lot faster than a real GBC, which is actually
-annoying. To prevent that, there is a timer which tries to remove the differences (and also CPU load). That timer relies
-(on Linux) on a special x86 CPU instruction, called RDTSC. That instruction returns the value of an internal high
-resolution timer---the problem is that this resolution is unknown and different on every computer, thus its frequency has
-to be determined, which is nearly impossible without having full control over the CPU. The only program which might be
-capable of doing so is the OS kernel (i.e., Linux itself). Thus, xgbcemu might try to determine the TSC frequency (TSC
-means “time stamp counter”, RDTSC means “read TSC”), but the result would not be exact.
+xgbcemu running on a relatively modern computer with Linux/SDL or Windows/SDL should be a lot faster than a real GBC,
+which is actually annoying. To prevent that, there is a timer which tries to remove the differences (and also CPU load).
+That timer relies (on Linux and Windows) on a special x86 CPU instruction, called RDTSC. That instruction returns the
+value of an internal high resolution timer---the problem is that this resolution is unknown and different on every
+computer, thus its frequency has to be determined, which is done by xgbcemu on startup (calibration process should be
+finished in less than a second).
 
-The TSC frequency should be equal to the CPU frequency, which can be read from /proc/cpuinfo. xgbcemu does that, but the
-result is obviously still not perfect---the emulator is still running too fast.
+Because xgbcemu isn't the only running process, the result of this calibration process is still inexact and thus the
+emulator won't run at exactly the speed a real GBC does.
 
 \subsection{Full speed mode}
 
 Sometimes you might want to disable the “brake” and run xgbcemu at full speed. This is done by enabling the full speed
-mode (on Linux: press left shift to enable it, another time to disable it again).
+mode (on Linux or Windows: press left shift to enable it, another time to disable it again).
 
 
 \section{Link cable}

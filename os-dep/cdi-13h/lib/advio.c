@@ -14,6 +14,8 @@
 static uint8_t *screen = NULL;
 static int scr_width, last_key_update = -1, key_through = 0;
 
+extern int frameskip_skip, frameskip_draw;
+
 uint32_t *old_vga_palette;
 
 void os_open_screen(int width, int height)
@@ -165,12 +167,24 @@ void os_draw_line(int offx, int offy, int line)
         }
     }
 
-    line = (line + 28) * 320;
+    if (!line)
+    {
+        for (int i = 0; i < frameskip_skip; i++)
+            screen[180 * 320 + 80 + i * 2] = 0xE8;
+        for (int i = frameskip_skip; i < 16; i++)
+            screen[180 * 320 + 80 + i * 2] = 0xFF;
+        for (int i = 0; i < frameskip_draw; i++)
+            screen[182 * 320 + 80 + i * 2] = 0xE8;
+        for (int i = frameskip_draw; i < 16; i++)
+            screen[182 * 320 + 80 + i * 2] = 0xFF;
+    }
+
+    line = (line + 28) * 320 + 80;
 
     for (int x = 0; x < scr_width; x++)
     {
         int px = (x + offx) & 0xFF;
         uint32_t col = ((uint32_t *)vidmem)[py + px];
-        screen[line + x + 80] = (((col & 0xFF0000) >> 16) & 0xE0) | (((col & 0xFF00) >> 11) & 0x1C) | ((col & 0xFF) >> 6);
+        screen[line + x] = (((col & 0xFF0000) >> 16) & 0xE0) | (((col & 0xFF00) >> 11) & 0x1C) | ((col & 0xFF) >> 6);
     }
 }
