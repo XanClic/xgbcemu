@@ -4,6 +4,9 @@
 
 // #define DISPLAY_ALL
 
+int frameskip_skip = 0, frameskip_draw = 16;
+static int frameskip_draw_i = 0, frameskip_skip_i = 0, skip_this = 0;
+
 void init_video(void)
 {
     #ifdef DISPLAY_ALL
@@ -75,6 +78,30 @@ static void draw_bg_line(int line, int bit7val, int window)
 
 void draw_line(int line)
 {
+    if (skip_this && (line < 143))
+        return;
+    else if (line == 143)
+    {
+        if (skip_this)
+        {
+            if (++frameskip_skip_i >= frameskip_skip)
+            {
+                frameskip_skip_i = 0;
+                skip_this = 0;
+                return;
+            }
+        }
+        else
+        {
+            if (++frameskip_draw_i >= frameskip_draw)
+            {
+                frameskip_draw_i = 0;
+                if (frameskip_skip)
+                    skip_this = 1;
+            }
+        }
+    }
+
     struct
     {
         uint8_t y, x;
@@ -226,4 +253,34 @@ void draw_line(int line)
     }
 
     os_draw_line(sx, sy, line);
+}
+
+void increase_frameskip(void)
+{
+    if (!frameskip_skip)
+        frameskip_skip = 1;
+    else if (frameskip_draw > 1)
+        frameskip_draw /= 2;
+    else if (frameskip_skip < 5)
+        frameskip_skip++;
+    else
+    {
+        frameskip_skip = 0;
+        frameskip_draw = 16;
+    }
+}
+
+void decrease_frameskip(void)
+{
+    if (!frameskip_skip)
+    {
+        frameskip_skip = 5;
+        frameskip_draw = 1;
+    }
+    else if (frameskip_skip > 1)
+        frameskip_skip--;
+    else if (frameskip_draw < 16)
+        frameskip_draw *= 2;
+    else
+        frameskip_skip = 0;
 }

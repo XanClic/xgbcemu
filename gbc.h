@@ -158,10 +158,12 @@ static inline int pal2rgb(int pal)
 }
 
 
+void decrease_frameskip(void);
 void draw_line(int line);
 void enter_shell(void);
 void generate_interrupts(void);
 void hdma_copy_16b(void);
+void increase_frameskip(void);
 void init_memory(void);
 void init_video(void);
 void io_outb(uint8_t reg, uint8_t val);
