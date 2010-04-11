@@ -113,15 +113,15 @@ void init_memory(void)
 
 void load_memory(void)
 {
-    fseek(fp, 0, SEEK_SET);
+    os_file_setpos(fp, 0);
     if (!mbc)
     {
         base_rom_ptr = alloc_mem(4096);
-        fread(base_rom_ptr, 1024, 4, fp);
+        os_file_read(fp, 4096, base_rom_ptr);
         if (rom_size > 1)
         {
             rom_bank_ptr = alloc_mem(4096);
-            fread(rom_bank_ptr, 1024, 4, fp);
+            os_file_read(fp, 4096, rom_bank_ptr);
         }
     }
     else

@@ -6,6 +6,7 @@
 #include <unistd.h>
 
 typedef FILE *file_obj;
+#define INVALID_FILE_HANDLE NULL
 
 #define os_print printf
 #define os_eprint(...) fprintf(stderr, __VA_ARGS__)

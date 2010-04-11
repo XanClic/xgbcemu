@@ -28,18 +28,18 @@ void load_rom(const char *fname, const char *sname)
     init_memory();
 
     fp = os_open_file_r(fname);
-    if (fp == NULL)
+    if (fp == INVALID_FILE_HANDLE)
     {
         os_perr("Couldn't read ROM file");
         exit_err();
     }
 
     save = os_open_file_rw(sname);
-    if (save == NULL)
+    if (save == INVALID_FILE_HANDLE)
     {
         save = os_create_file_rw(sname);
         save_created = 1;
-        if (save == NULL)
+        if (save == INVALID_FILE_HANDLE)
         {
             os_close_file(fp);
             os_perr("Couldn't create save file");

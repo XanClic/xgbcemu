@@ -2,6 +2,10 @@
 
 int main(int argc, char *argv[])
 {
+    #ifdef os_init_console
+    os_init_console
+    #endif
+
     if (argc != 3)
     {
         os_eprint("Usage: xgbcemu <ROM> <Save>\n");

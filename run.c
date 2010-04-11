@@ -1250,7 +1250,7 @@ void run(void)
 
             if (collect_sleep_time >= 10000)
             {
-                sleep_ms(collect_sleep_time);
+                sleep_ms(collect_sleep_time / 1000);
                 collect_sleep_time = 0;
             }
         }

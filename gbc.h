@@ -136,6 +136,31 @@ extern int connection_master;
 #define INT_LCDC_STAT (1 << 1)
 #define INT_VBLANK    (1 << 0)
 
+#ifdef VK_A
+#undef VK_A
+#endif
+#ifdef VK_B
+#undef VK_B
+#endif
+#ifdef VK_SELECT
+#undef VK_SELECT
+#endif
+#ifdef VK_START
+#undef VK_START
+#endif
+#ifdef VK_RIGHT
+#undef VK_RIGHT
+#endif
+#ifdef VK_LEFT
+#undef VK_LEFT
+#endif
+#ifdef VK_UP
+#undef VK_UP
+#endif
+#ifdef VK_DOWN
+#undef VK_DOWN
+#endif
+
 #define VK_A      KEY_A
 #define VK_B      KEY_B
 #define VK_SELECT KEY_SELECT
