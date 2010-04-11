@@ -299,6 +299,9 @@ static void hdma5(uint8_t val)
         return;
     }
 
+    if (!hdma_dest)
+        return;
+
     io_regs->hdma5 = val & 0x7F;
 
     if (val & 0x80)

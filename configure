@@ -42,7 +42,7 @@ fi
 echo "Configuring makefile for $choice."
 echo "CC = @$cc" > make.config
 echo "LINK = @$link" >> make.config
-echo "ACFLAGS = $CFLAGS -I$(pwd)/os-dep/$choice/include" >> make.config
+echo "ACFLAGS = $CFLAGS \"-I$(pwd)/os-dep/$choice/include\"" >> make.config
 echo "ALDFLAGS = $LDFLAGS" >> make.config
 echo "OSOBJS = \$(patsubst %.c,%.o,\$(wildcard os-dep/$choice/lib/*.c))" >> make.config
 echo >> make.config

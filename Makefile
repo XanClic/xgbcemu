@@ -10,21 +10,23 @@ else
 	OBJS = $(patsubst %.c,%.o,$(wildcard *.c) $(wildcard cartridges/*.c)) $(OSOBJS)
 endif
 
+QOBJS = $(patsubst %,"%",$(OBJS))
+
 .PHONY: all clean
 
 all: xgbcemu
 
 xgbcemu: $(OBJS)
 	$(ECHO) "LINK    >$@"
-	$(LINK) $^ -o $@ $(LDFLAGS)
+	$(LINK) $(QOBJS) -o "$@" $(LDFLAGS)
 
 %.o: %.c
 	$(ECHO) "CC      $<"
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) "$<" -o "$@"
 
 %.o: %.asm
 	$(ECHO) "ASM     $<"
-	$(ASM) $< $@
+	$(ASM) "$<" "$@"
 
 make.config: configure
 	$(ECHO) "Executing ./configure..."
