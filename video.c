@@ -13,7 +13,7 @@ void init_video(void)
     #endif
 }
 
-static void draw_bg_line(int line, int bit7val)
+static void draw_bg_line(int line, int bit7val, int window)
 {
     int by = line & 0xF8, ry = line & 0x07;
     int tile = by * 4;
@@ -22,6 +22,9 @@ static void draw_bg_line(int line, int bit7val)
 
     for (int bx = 0; bx < 256; bx += 8)
     {
+        if (window && (io_regs->wx <= bx))
+            break;
+
         int flags = btm[1][tile];
 
         if ((flags & (1 << 7)) != bit7val)
@@ -80,6 +83,7 @@ void draw_line(int line)
     } __attribute__((packed)) *oam = (void *)oam_io;
     int sx = io_regs->scx, sy = io_regs->scy;
     int abs_line = (line + sy) & 0xFF;
+    int window_active = ((io_regs->lcdc & (1 << 5)) && (io_regs->wx >= 7) && (io_regs->wx <= 166) && (io_regs->wy <= line));
 
     if (!(io_regs->lcdc & (1 << 7)))
         return;
@@ -87,16 +91,16 @@ void draw_line(int line)
     if (!(io_regs->lcdc & (1 << 0)))
         memset((uint32_t *)vidmem + abs_line * 256, 0, 256 * 4);
     else
-        draw_bg_line(abs_line, 0 << 7);
+        draw_bg_line(abs_line, 0 << 7, window_active);
 
-    if ((io_regs->lcdc & (1 << 5)) && (io_regs->wx >= 7) && (io_regs->wx <= 166) && (io_regs->wy <= line))
+    if (window_active)
     {
         int wx = io_regs->wx + sx - 7, wy = io_regs->wy;
         int yoff = line - wy;
         int by = yoff & 0xF8, ry = yoff & 0x07;
         int tile = by * 4;
 
-        for (int bx = 0; bx < 256; bx += 8)
+        for (int bx = 0; bx < 160; bx += 8)
         {
             int flags = wtm[1][tile];
 
@@ -209,7 +213,7 @@ void draw_line(int line)
     }
 
     if (io_regs->lcdc & (1 << 0))
-        draw_bg_line(abs_line, 1 << 7);
+        draw_bg_line(abs_line, 1 << 7, window_active);
 
     if (line == 143)
     {
