@@ -7,7 +7,6 @@ RM = -@rm -f
 all: doc
 
 doc: doc.pdf
-	$(RM) *.log *.aux *.out
 
 %.pdf: %.tex
 	$(ECHO) 'TEX2PDF  $<'
