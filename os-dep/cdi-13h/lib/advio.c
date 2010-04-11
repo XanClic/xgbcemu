@@ -116,8 +116,10 @@ void os_handle_events(void)
                 save_to_disk();
                 break;
             case 'f':
+                increase_frameskip();
+                break;
             case 'F':
-                boost ^= 1;
+                decrease_frameskip();
                 break;
             case 'i':
             case 'I':
