@@ -256,8 +256,7 @@ static uint8_t no_ramr_handler(uintptr_t addr)
 
 static void no_romw_handler(uintptr_t addr, uint8_t value)
 {
-    os_eprint("No ROM write handler available! (MBC%i, 0x%02X to 0x%04X)\n", mbc, value, addr);
-    exit_err();
+    addr = value;
 }
 
 static uint8_t no_romr_handler(uintptr_t addr)

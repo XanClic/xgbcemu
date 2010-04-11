@@ -1,4 +1,4 @@
-TEX2PDF = @pdflatex
+TEX2PDF = @pdflatex > /dev/null
 ECHO = @echo
 RM = -@rm -f
 
