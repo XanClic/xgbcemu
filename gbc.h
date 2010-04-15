@@ -86,7 +86,7 @@ extern volatile int interrupt_issued, keystates;
 extern uint32_t tsc_resolution;
 extern void *vidmem;
 extern file_obj fp, save;
-extern int mbc, ext_ram, rtc, batt, rmbl;
+extern int mbc, ext_ram, rtc, batt, rmbl, current_rom_bank;
 extern uint8_t *ext_ram_ptr, *rom_bank_ptr, *base_rom_ptr;
 extern uint8_t *int_ram, *oam_io, *vidram, *int_wram, *full_int_wram, *full_vidram;
 extern uint16_t bpalette[32], opalette[32];

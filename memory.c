@@ -5,6 +5,7 @@
 
 // #define DUMP
 // #define DUMP_IO
+// #define DUMP_VID_WRITES
 
 static void no_ramw_handler(uintptr_t addr, uint8_t value);
 static uint8_t no_ramr_handler(uintptr_t addr);
@@ -149,7 +150,12 @@ void mem_writeb(uintptr_t addr, uint8_t value)
                 int_ram[addr & 0x0FFF] = value;
         }
         else if (addr < 0xA000)
+        {
+            #ifdef DUMP_VID_WRITES
+            os_print("0x%02X -> 0x%04X\n", (unsigned)value, (unsigned)addr);
+            #endif
             vidram[addr - 0x8000] = value;
+        }
         else
         {
             if (ext_ram_ptr != NULL)

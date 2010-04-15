@@ -21,8 +21,6 @@ extern const int cycles[256];
 extern const int cycles0xCB[256];
 extern const uint16_t daa_table[1024];
 
-static int add_cycles = 0;
-
 
 
 static void nop(void)
@@ -1210,7 +1208,7 @@ void run(void)
         }
 
         #ifdef DUMP_REGS
-        os_print("PC=%04x AF=%04x BC=%04x DE=%04x HL=%04x SP=%04x\n", (unsigned)r_ip, (unsigned)r_af, (unsigned)r_bc, (unsigned)r_de, (unsigned)r_hl, (unsigned)r_sp);
+        os_print("PC=%04x AF=%04x BC=%04x DE=%04x HL=%04x SP=%04x LY=%03i [%i]\n", (unsigned)r_ip, (unsigned)r_af, (unsigned)r_bc, (unsigned)r_de, (unsigned)r_hl, (unsigned)r_sp, (int)io_regs->ly, (int)current_rom_bank);
         #endif
 
         r_ip++;
@@ -1220,11 +1218,7 @@ void run(void)
         else
             cyc = cycles0xCB[(int)mem_readb(r_ip)];
 
-        add_cycles = 0;
-
         handle[opcode]();
-
-        cyc += add_cycles;
 
         if (change_int_status)
         {

@@ -3,7 +3,7 @@
 #define RLC(sr, cr) \
     static void rlc_##sr(void) \
     { \
-        r_f = (r_##sr & 0x80U) >> 3; \
+        r_f = (r_##sr & 0x80U) >> (7 - FS_CRY); \
         r_##sr = (r_##sr << 1) | (r_##sr >> 7); \
         if (!r_##sr) \
             r_f |= FLAG_ZERO; \
@@ -12,7 +12,7 @@
 #define RRC(sr, cr) \
     static void rrc_##sr(void) \
     { \
-        r_f = (r_##sr & 0x01) << 4; \
+        r_f = (r_##sr & 0x01) << FS_CRY; \
         r_##sr = (r_##sr >> 1) | (r_##sr << 7); \
         if (!r_##sr) \
             r_f |= FLAG_ZERO; \
@@ -22,8 +22,8 @@
     static void rl_##sr(void) \
     { \
         unsigned cry = r_f & FLAG_CRY; \
-        r_f = (r_##sr & 0x80U) >> 3; \
-        r_##sr = (r_##sr << 1) | (cry >> 4); \
+        r_f = (r_##sr & 0x80U) >> (7 - FS_CRY); \
+        r_##sr = (r_##sr << 1) | (cry >> FS_CRY); \
         if (!r_##sr) \
             r_f |= FLAG_ZERO; \
     }
@@ -31,9 +31,9 @@
 #define RR(sr, cr) \
     static void rr_##sr(void) \
     { \
-        int cry = r_f & FLAG_CRY; \
-        r_f = (r_##sr & 0x01) << 4; \
-        r_##sr = (r_##sr >> 1) | (cry << 3); \
+        unsigned cry = r_f & FLAG_CRY; \
+        r_f = (r_##sr & 0x01) << FS_CRY; \
+        r_##sr = (r_##sr >> 1) | (cry << (7 - FS_CRY)); \
         if (!r_##sr) \
             r_f |= FLAG_ZERO; \
     }
@@ -41,7 +41,7 @@
 #define SLA(sr, cr) \
     static void sla_##sr(void) \
     { \
-        r_f = (r_##sr & 0x80U) >> 3; \
+        r_f = (r_##sr & 0x80U) >> (7 - FS_CRY); \
         r_##sr <<= 1; \
         if (!r_##sr) \
             r_f |= FLAG_ZERO; \
@@ -50,7 +50,7 @@
 #define SRA(sr, cr) \
     static void sra_##sr(void) \
     { \
-        r_f = (r_##sr & 0x01) << 4; \
+        r_f = (r_##sr & 0x01) << FS_CRY; \
         r_##sr = (int8_t)r_##sr >> 1; \
         if (!r_##sr) \
             r_f |= FLAG_ZERO; \
@@ -59,7 +59,7 @@
 #define SRL(sr, cr) \
     static void srl_##sr(void) \
     { \
-        r_f = (r_##sr & 0x01) << 4; \
+        r_f = (r_##sr & 0x01) << FS_CRY; \
         r_##sr >>= 1; \
         if (!r_##sr) \
             r_f |= FLAG_ZERO; \

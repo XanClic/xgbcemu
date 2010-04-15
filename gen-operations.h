@@ -102,7 +102,7 @@ static void dec_##reg(void) \
 static void add_hl_##reg(void) \
 { \
     unsigned result = r_hl + r_##reg; \
-    r_f = (r_f & FLAG_ZERO) | ((result & 0x10000) >> (16 - FS_CRY)) | (((r_hl ^ r_##reg ^ result) & 0x1000U) >> (12 - FS_HCRY)); \
+    r_f = (r_f & FLAG_ZERO) | ((result & 0x10000U) >> (16 - FS_CRY)) | (((r_hl ^ r_##reg ^ result) & 0x1000U) >> (12 - FS_HCRY)); \
     r_hl = (uint16_t)result; \
 }
 
@@ -148,7 +148,7 @@ static void sub_a_##ar(void) \
     uint8_t rval = reg; \
     uint16_t result = (uint16_t)(r_a - rval); \
     r_f = FLAG_SUB | ((result & 0x100U) >> (8 - FS_CRY)) | (!result << FS_ZERO); \
-    if ((r_a & 0xFU) - (rval & 0xFU) > 0xFU) \
+    if (((r_a & 0xFU) - (rval & 0xFU)) & 0x10U) \
         r_f |= FLAG_HCRY; \
     r_a = (uint8_t)result; \
 }
@@ -165,7 +165,7 @@ static void sbc_a_##ar(void) \
     int cry = (r_f & FLAG_CRY) >> FS_CRY; \
     uint16_t result = (uint16_t)(r_a - rval - cry); \
     r_f = FLAG_SUB | ((result & 0x100U) >> (8 - FS_CRY)) | (!result << FS_ZERO); \
-    if ((r_a & 0xFU) - (rval & 0xFU) - (unsigned)cry > 0xFU) \
+    if (((r_a & 0xFU) - (rval & 0xFU) - (unsigned)cry) & 0x10U) \
         r_f |= FLAG_HCRY; \
     r_a = (uint8_t)result; \
 }
@@ -181,7 +181,7 @@ static void cp_a_##ar(void) \
     uint8_t rval = reg; \
     uint16_t result = (uint16_t)(r_a - rval); \
     r_f = FLAG_SUB | ((result & 0x100U) >> (8 - FS_CRY)) | (!result << FS_ZERO); \
-    if ((r_a & 0xFU) - (rval & 0xFU) > 0xFU) \
+    if (((r_a & 0xFU) - (rval & 0xFU)) & 0x10U) \
         r_f |= FLAG_HCRY; \
 }
 
@@ -230,10 +230,7 @@ static void or_a_##ar(void) \
 static void jr##cc(void) \
 { \
     if (condition) \
-    { \
         jr(); \
-        add_cycles = 1; \
-    } \
     else \
         r_ip++; \
 }
@@ -245,10 +242,7 @@ static void jr##cc(void) \
 static void jp##cc(void) \
 { \
     if (condition) \
-    { \
         jp(); \
-        add_cycles = 1; \
-    } \
     else \
         r_ip += 2; \
 }
@@ -260,10 +254,7 @@ static void jp##cc(void) \
 static void call##cc(void) \
 { \
     if (condition) \
-    { \
         call(); \
-        add_cycles = 3; \
-    } \
     else \
         r_ip += 2; \
 }
@@ -275,10 +266,7 @@ static void call##cc(void) \
 static void ret##cc(void) \
 { \
     if (condition) \
-    { \
         ret(); \
-        add_cycles = 3; \
-    } \
 }
 
 

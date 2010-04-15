@@ -99,6 +99,15 @@ void update_timer(int cycles_gone)
             io_regs->int_flag |= INT_LCDC_STAT;
     }
 
+    #ifdef ENABLE_LINK
+    if (link_countdown)
+    {
+        link_countdown -= cycles_gone;
+        if (link_countdown <= 0)
+            link_clock();
+    }
+    #endif
+
     if (!(io_regs->tac & (1 << 2)))
         return;
 
@@ -112,13 +121,4 @@ void update_timer(int cycles_gone)
             io_regs->int_flag |= INT_TIMER;
         }
     }
-
-    #ifdef ENABLE_LINK
-    if (link_countdown)
-    {
-        link_countdown -= cycles_gone;
-        if (link_countdown <= 0)
-            link_clock();
-    }
-    #endif
 }
