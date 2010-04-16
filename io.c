@@ -215,6 +215,38 @@ static void ocpd(uint8_t value)
         ocps(io_regs->ocps + 1);
 }
 
+static int shade[4] =
+{
+    0x0000, //   0,   0,   0
+    0x294A, //  80,  80,  80
+    0x56B5, // 168, 168, 168
+    0x7FFF  // 255, 255, 255
+};
+
+static void bgp(uint8_t value)
+{
+    bpalette[3] = shade[(value & (3 << 0)) >> 0];
+    bpalette[2] = shade[(value & (3 << 2)) >> 2];
+    bpalette[1] = shade[(value & (3 << 4)) >> 4];
+    bpalette[0] = shade[(value & (3 << 6)) >> 6];
+}
+
+static void obp0(uint8_t value)
+{
+    opalette[3] = shade[(value & (3 << 0)) >> 0];
+    opalette[2] = shade[(value & (3 << 2)) >> 2];
+    opalette[1] = shade[(value & (3 << 4)) >> 4];
+    opalette[0] = shade[(value & (3 << 6)) >> 6];
+}
+
+static void obp1(uint8_t value)
+{
+    opalette[7] = shade[(value & (3 << 0)) >> 0];
+    opalette[6] = shade[(value & (3 << 2)) >> 2];
+    opalette[5] = shade[(value & (3 << 4)) >> 4];
+    opalette[4] = shade[(value & (3 << 6)) >> 6];
+}
+
 static uint16_t hdma_src = 0, hdma_dest = 0;
 
 static void hdma1(uint8_t val)
@@ -438,9 +470,9 @@ static void (*const io_handlers[256])(uint8_t value) =
     (void (*)(uint8_t))&ly, // ly
     (void (*)(uint8_t))&nop, // lyc
     &dma, // dma
-    (void (*)(uint8_t))&nop, // bgp
-    (void (*)(uint8_t))&nop, // obp0
-    (void (*)(uint8_t))&nop, // obp1
+    &bgp, // bgp
+    &obp0, // obp0
+    &obp1, // obp1
     (void (*)(uint8_t))&nop, // wy
     (void (*)(uint8_t))&nop, // wx
     (void (*)(uint8_t))&nop, // rsvd6

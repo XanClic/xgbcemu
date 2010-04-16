@@ -28,7 +28,11 @@ static void draw_bg_line(int line, int bit7val, int window)
         if (window && (io_regs->wx <= bx))
             break;
 
-        int flags = btm[1][tile];
+        int flags;
+        if (gbc_mode)
+            flags = btm[1][tile];
+        else
+            flags = 0;
 
         if ((flags & (1 << 7)) != bit7val)
         {
@@ -37,8 +41,18 @@ static void draw_bg_line(int line, int bit7val, int window)
         }
 
         uint8_t *tdat;
-        int vbank = !!(flags & (1 << 3));
-        uint16_t *pal = &bpalette[(flags & 7) * 4];
+        int vbank;
+        uint16_t *pal;
+        if (gbc_mode)
+        {
+            vbank = !!(flags & (1 << 3));
+            pal = &bpalette[(flags & 7) * 4];
+        }
+        else
+        {
+            vbank = 0;
+            pal = bpalette;
+        }
 
         if (bwtd[0] == (uint8_t *)&full_vidram[0x0000])
             tdat = &bwtd[vbank][(unsigned)btm[0][tile] * 16];
@@ -78,6 +92,13 @@ static void draw_bg_line(int line, int bit7val, int window)
 
 void draw_line(int line)
 {
+    if (!lcd_on)
+    {
+        if (line == 143)
+            os_handle_events();
+        return;
+    }
+
     if (skip_this && (line < 143))
         return;
     else if (line == 143)
@@ -112,9 +133,6 @@ void draw_line(int line)
     int abs_line = (line + sy) & 0xFF;
     int window_active = ((io_regs->lcdc & (1 << 5)) && (io_regs->wx >= 7) && (io_regs->wx <= 166) && (io_regs->wy <= line));
 
-    if (!(io_regs->lcdc & (1 << 7)))
-        return;
-
     if (!(io_regs->lcdc & (1 << 0)))
         memset((uint32_t *)vidmem + abs_line * 256, 0, 256 * 4);
     else
@@ -129,11 +147,25 @@ void draw_line(int line)
 
         for (int bx = 0; bx < 160; bx += 8)
         {
-            int flags = wtm[1][tile];
+            int flags;
+            if (gbc_mode)
+                flags = wtm[1][tile];
+            else
+                flags = 0;
 
             uint8_t *tdat;
-            int vbank = !!(flags & (1 << 3));
-            uint16_t *pal = &bpalette[(flags & 7) * 4];
+            int vbank;
+            uint16_t *pal;
+            if (gbc_mode)
+            {
+                vbank = !!(flags & (1 << 3));
+                pal = &bpalette[(flags & 7) * 4];
+            }
+            else
+            {
+                vbank = 0;
+                pal = bpalette;
+            }
 
             if (bwtd[0] == (uint8_t *)&full_vidram[0x0000])
                 tdat = &bwtd[vbank][(unsigned)wtm[0][tile] * 16];
@@ -179,7 +211,11 @@ void draw_line(int line)
         {
             uint8_t *tdat;
             int bx = oam[sprite].x, by = oam[sprite].y, flags = oam[sprite].flags;
-            uint16_t *pal = &opalette[(flags & 7) * 4];
+            uint16_t *pal;
+            if (gbc_mode)
+                pal = &opalette[(flags & 7) * 4];
+            else
+                pal = &opalette[(flags & (1 << 4)) >> 2];
 
             bx -= 8;
             by -= 16;
