@@ -1185,8 +1185,8 @@ void run(void)
 
     for(int i = 0; i < 32; i++)
     {
-        bpalette[i] = 0x7FFF;
-        opalette[i] = 0x7FFF;
+        bpalette[i] = 0x011F;
+        opalette[i] = 0x011F;
     }
 
     #ifdef TRUE_TIMING
