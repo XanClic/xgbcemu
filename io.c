@@ -103,20 +103,30 @@ static void divreg(void)
 
 static void svbk(uint8_t value)
 {
-    int new_bank = value & 0x07;
-    if (!new_bank)
-        new_bank = 1;
+    if (!gbc_mode)
+        io_regs->svbk = value;
+    else
+    {
+        int new_bank = value & 0x07;
+        if (!new_bank)
+            new_bank = 1;
 
-    io_regs->svbk = new_bank;
+        io_regs->svbk = new_bank;
 
-    int_wram = &full_int_wram[(new_bank - 1) * 4096];
+        int_wram = &full_int_wram[(new_bank - 1) * 4096];
+    }
 }
 
 static void vbk(uint8_t value)
 {
-    value &= 1;
-    io_regs->svbk = value;
-    vidram = &full_vidram[value * 8192];
+    if (!gbc_mode)
+        io_regs->vbk = value;
+    else
+    {
+        value &= 1;
+        io_regs->svbk = value;
+        vidram = &full_vidram[value * 8192];
+    }
 }
 
 /**
@@ -131,11 +141,16 @@ static void vbk(uint8_t value)
  */
 static void bcps(uint8_t value)
 {
-    int pval = bpalette[(value >> 1) & 0x1F];
-    int high = value & 1;
+    if (!gbc_mode)
+        io_regs->bcps = value;
+    else
+    {
+        int pval = bpalette[(value >> 1) & 0x1F];
+        int high = value & 1;
 
-    io_regs->bcps = value & 0xBF;
-    io_regs->bcpd = high ? (pval >> 8) : (pval & 0xFF);
+        io_regs->bcps = value & 0xBF;
+        io_regs->bcpd = high ? (pval >> 8) : (pval & 0xFF);
+    }
 }
 
 /**
@@ -148,27 +163,32 @@ static void bcps(uint8_t value)
  */
 static void bcpd(uint8_t value)
 {
-    int i = (io_regs->bcps >> 1) & 0x1F;
-    int high = io_regs->bcps & 1;
-
-    io_regs->bcpd = value;
-
-    if (high)
-    {
-        // Change high byte (MSb must be reset)
-        bpalette[i] &= 0x00FF;
-        bpalette[i] |= (value << 8) & 0x7F00;
-    }
+    if (!gbc_mode)
+        io_regs->bcpd = value;
     else
     {
-        // Change low byte
-        bpalette[i] &= 0xFF00;
-        bpalette[i] |= value;
-    }
+        int i = (io_regs->bcps >> 1) & 0x1F;
+        int high = io_regs->bcps & 1;
 
-    // Use auto-increment mode
-    if (io_regs->bcps & 0x80)
-        bcps(io_regs->bcps + 1);
+        io_regs->bcpd = value;
+
+        if (high)
+        {
+            // Change high byte (MSb must be reset)
+            bpalette[i] &= 0x00FF;
+            bpalette[i] |= (value << 8) & 0x7F00;
+        }
+        else
+        {
+            // Change low byte
+            bpalette[i] &= 0xFF00;
+            bpalette[i] |= value;
+        }
+
+        // Use auto-increment mode
+        if (io_regs->bcps & 0x80)
+            bcps(io_regs->bcps + 1);
+    }
 }
 
 /**
@@ -178,11 +198,16 @@ static void bcpd(uint8_t value)
  */
 static void ocps(uint8_t value)
 {
-    int pval = opalette[(value >> 1) & 0x1F];
-    int high = value & 1;
+    if (!gbc_mode)
+        io_regs->ocps = value;
+    else
+    {
+        int pval = opalette[(value >> 1) & 0x1F];
+        int high = value & 1;
 
-    io_regs->ocps = value & 0xBF;
-    io_regs->ocpd = high ? (pval >> 8) : (pval & 0xFF);
+        io_regs->ocps = value & 0xBF;
+        io_regs->ocpd = high ? (pval >> 8) : (pval & 0xFF);
+    }
 }
 
 /**
@@ -192,101 +217,154 @@ static void ocps(uint8_t value)
  */
 static void ocpd(uint8_t value)
 {
-    int i = (io_regs->ocps >> 1) & 0x1F;
-    int high = io_regs->ocps & 1;
-
-    io_regs->ocpd = value;
-
-    if (high)
-    {
-        // Change high byte (MSB must be reset)
-        opalette[i] &= 0x00FF;
-        opalette[i] |= (value << 8) & 0x7F00;
-    }
+    if (!gbc_mode)
+        io_regs->ocpd = value;
     else
     {
-        // Change low byte
-        opalette[i] &= 0xFF00;
-        opalette[i] |= value;
-    }
+        int i = (io_regs->ocps >> 1) & 0x1F;
+        int high = io_regs->ocps & 1;
 
-    // Use auto-increment mode
-    if (io_regs->ocps & 0x80)
-        ocps(io_regs->ocps + 1);
+        io_regs->ocpd = value;
+
+        if (high)
+        {
+            // Change high byte (MSB must be reset)
+            opalette[i] &= 0x00FF;
+            opalette[i] |= (value << 8) & 0x7F00;
+        }
+        else
+        {
+            // Change low byte
+            opalette[i] &= 0xFF00;
+            opalette[i] |= value;
+        }
+
+        // Use auto-increment mode
+        if (io_regs->ocps & 0x80)
+            ocps(io_regs->ocps + 1);
+    }
 }
 
-static int shade[4] =
+static int bshade[4] =
 {
-    0x0000, //   0,   0,   0
-    0x294A, //  80,  80,  80
+    0x7FFF, // 255, 255, 255
     0x56B5, // 168, 168, 168
-    0x7FFF  // 255, 255, 255
+    0x294A, //  80,  80,  80
+    0x0000  //   0,   0,   0
+};
+
+static int o0shade[4] =
+{
+    0x7FFF, // 255, 255, 255
+    0x56B5, // 168, 168, 168
+    0x294A, //  80,  80,  80
+    0x0000  //   0,   0,   0
+};
+
+static int o1shade[4] =
+{
+    0x7FFF, // 255, 255, 255
+    0x56B5, // 168, 168, 168
+    0x294A, //  80,  80,  80
+    0x0000  //   0,   0,   0
 };
 
 static void bgp(uint8_t value)
 {
-    bpalette[3] = shade[(value & (3 << 0)) >> 0];
-    bpalette[2] = shade[(value & (3 << 2)) >> 2];
-    bpalette[1] = shade[(value & (3 << 4)) >> 4];
-    bpalette[0] = shade[(value & (3 << 6)) >> 6];
+    io_regs->bgp = value;
+    if (!gbc_mode)
+    {
+        bpalette[0] = bshade[(value & (3 << 0)) >> 0];
+        bpalette[1] = bshade[(value & (3 << 2)) >> 2];
+        bpalette[2] = bshade[(value & (3 << 4)) >> 4];
+        bpalette[3] = bshade[(value & (3 << 6)) >> 6];
+    }
 }
 
 static void obp0(uint8_t value)
 {
-    opalette[3] = shade[(value & (3 << 0)) >> 0];
-    opalette[2] = shade[(value & (3 << 2)) >> 2];
-    opalette[1] = shade[(value & (3 << 4)) >> 4];
-    opalette[0] = shade[(value & (3 << 6)) >> 6];
+    io_regs->obp0 = value;
+    if (!gbc_mode)
+    {
+        opalette[0] = o0shade[(value & (3 << 0)) >> 0];
+        opalette[1] = o0shade[(value & (3 << 2)) >> 2];
+        opalette[2] = o0shade[(value & (3 << 4)) >> 4];
+        opalette[3] = o0shade[(value & (3 << 6)) >> 6];
+    }
 }
 
 static void obp1(uint8_t value)
 {
-    opalette[7] = shade[(value & (3 << 0)) >> 0];
-    opalette[6] = shade[(value & (3 << 2)) >> 2];
-    opalette[5] = shade[(value & (3 << 4)) >> 4];
-    opalette[4] = shade[(value & (3 << 6)) >> 6];
+    io_regs->obp1 = value;
+    if (!gbc_mode)
+    {
+        opalette[4] = o1shade[(value & (3 << 0)) >> 0];
+        opalette[5] = o1shade[(value & (3 << 2)) >> 2];
+        opalette[6] = o1shade[(value & (3 << 4)) >> 4];
+        opalette[7] = o1shade[(value & (3 << 6)) >> 6];
+    }
 }
 
 static uint16_t hdma_src = 0, hdma_dest = 0;
 
 static void hdma1(uint8_t val)
 {
-    if ((val >= 0x80) && (val < 0xA0))
-        val = 0;
-    if (val >= 0xE0)
-        val -= 0x20;
+    if (!gbc_mode)
+        io_regs->hdma1 = val;
+    else
+    {
+        if ((val >= 0x80) && (val < 0xA0))
+            val = 0;
+        if (val >= 0xE0)
+            val -= 0x20;
 
-    hdma_src &= 0x00F0;
-    hdma_src |= (val << 8);
+        hdma_src &= 0x00F0;
+        hdma_src |= (val << 8);
 
-    io_regs->hdma1 = val;
+        io_regs->hdma1 = val;
+    }
 }
 
 static void hdma2(uint8_t val)
 {
-    hdma_src &= 0xFF00;
-    hdma_src |= val & 0xF0;
+    if (!gbc_mode)
+        io_regs->hdma2 = val;
+    else
+    {
+        hdma_src &= 0xFF00;
+        hdma_src |= val & 0xF0;
 
-    io_regs->hdma2 = val;
+        io_regs->hdma2 = val;
+    }
 }
 
 static void hdma3(uint8_t val)
 {
-    val &= 0x1F;
-    val |= 0x80;
+    if (!gbc_mode)
+        io_regs->hdma3 = val;
+    else
+    {
+        val &= 0x1F;
+        val |= 0x80;
 
-    hdma_dest &= 0x00F0;
-    hdma_dest |= (val << 8);
+        hdma_dest &= 0x00F0;
+        hdma_dest |= (val << 8);
 
-    io_regs->hdma3 = val;
+        io_regs->hdma3 = val;
+    }
 }
 
 static void hdma4(uint8_t val)
 {
-    hdma_dest &= 0xFF00;
-    hdma_dest |= val & 0xF0;
+    if (!gbc_mode)
+        io_regs->hdma4 = val;
+    else
+    {
+        hdma_dest &= 0xFF00;
+        hdma_dest |= val & 0xF0;
 
-    io_regs->hdma4 = val;
+        io_regs->hdma4 = val;
+    }
 }
 
 void hdma_copy_16b(void)
@@ -319,33 +397,38 @@ void hdma_copy_16b(void)
 
 static void hdma5(uint8_t val)
 {
-    if (hdma_on)
+    if (!gbc_mode)
+        io_regs->hdma5 = val;
+    else
     {
-        if (val & 0x80)
-            io_regs->hdma5 = val & 0x7F;
-        else
+        if (hdma_on)
         {
-            io_regs->hdma5 = 0xFF;
-            hdma_on = 0;
+            if (val & 0x80)
+                io_regs->hdma5 = val & 0x7F;
+            else
+            {
+                io_regs->hdma5 = 0xFF;
+                hdma_on = 0;
+            }
+            return;
         }
-        return;
+
+        if (!hdma_dest)
+            return;
+
+        io_regs->hdma5 = val & 0x7F;
+
+        if (val & 0x80)
+        {
+            hdma_on = 1;
+            return;
+        }
+
+        while (!(io_regs->hdma5 & 0x80))
+            hdma_copy_16b();
+
+        generate_interrupts();
     }
-
-    if (!hdma_dest)
-        return;
-
-    io_regs->hdma5 = val & 0x7F;
-
-    if (val & 0x80)
-    {
-        hdma_on = 1;
-        return;
-    }
-
-    while (!(io_regs->hdma5 & 0x80))
-        hdma_copy_16b();
-
-    generate_interrupts();
 }
 
 static void key1(uint8_t val)
@@ -374,9 +457,7 @@ void serial_control(uint8_t val)
     {
         if (bits_to_be_transferred && (bits_to_be_transferred < 8))
             return;
-        if (current_connection == INVALID_CONN_VALUE)
-            os_eprint("Tried to initiate serial transfer without link cable.\n");
-        else
+        if (current_connection != INVALID_CONN_VALUE)
         {
             bits_to_be_transferred = 8;
             if (val & 1)

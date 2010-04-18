@@ -3,7 +3,7 @@
 #include "gbc.h"
 #include "gen-operations.h"
 
-// #define DUMP_REGS
+// #define DUMP_REGS 0
 
 #define X86_ZF (1 << 6)
 #define X86_CF (1 << 0)
@@ -1208,7 +1208,11 @@ void run(void)
         }
 
         #ifdef DUMP_REGS
+        #if DUMP_REGS
         os_print("PC=%04x AF=%04x BC=%04x DE=%04x HL=%04x SP=%04x LY=%03i [%i]\n", (unsigned)r_ip, (unsigned)r_af, (unsigned)r_bc, (unsigned)r_de, (unsigned)r_hl, (unsigned)r_sp, (int)io_regs->ly, (int)current_rom_bank);
+        #else
+        os_print("PC=%04x AF=%04x BC=%04x DE=%04x HL=%04x SP=%04x\n", (unsigned)r_ip, (unsigned)r_af, (unsigned)r_bc, (unsigned)r_de, (unsigned)r_hl, (unsigned)r_sp);
+        #endif
         #endif
 
         r_ip++;

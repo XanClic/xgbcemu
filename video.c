@@ -217,6 +217,9 @@ void draw_line(int line)
             else
                 pal = &opalette[(flags & (1 << 4)) >> 2];
 
+            if (!gbc_mode)
+                flags &= 0xF0;
+
             bx -= 8;
             by -= 16;
 
@@ -275,7 +278,7 @@ void draw_line(int line)
         }
     }
 
-    if (io_regs->lcdc & (1 << 0))
+    if ((io_regs->lcdc & (1 << 0)) && gbc_mode)
         draw_bg_line(abs_line, 1 << 7, window_active);
 
     if (line == 143)

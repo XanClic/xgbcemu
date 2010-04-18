@@ -29,8 +29,8 @@ void update_timer(int cycles_gone)
         div_collect -= cycles_gone;
     }
 
-    // if (lcd_on)
-    // {
+    if (lcd_on)
+    {
         vsync_collect += cycles_gone;
 
         io_regs->stat &= ~3;
@@ -97,7 +97,7 @@ void update_timer(int cycles_gone)
             io_regs->int_flag |= INT_LCDC_STAT;
         else if ((io_regs->stat & (1 << 3)) && hblank_start)
             io_regs->int_flag |= INT_LCDC_STAT;
-    // }
+    }
 
     #ifdef ENABLE_LINK
     if (link_countdown)

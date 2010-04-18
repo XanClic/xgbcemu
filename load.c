@@ -69,7 +69,7 @@ void load_rom(const char *fname, const char *sname)
             break;
         os_print("%c", start_of_rom[i]);
     }
-    if ((start_of_rom[0x143] == 0x80) || (start_of_rom[0x143] == 0xC0))
+    if (start_of_rom[0x143] & 0x80)
         gbc_mode = 1;
     else
         gbc_mode = 0;
