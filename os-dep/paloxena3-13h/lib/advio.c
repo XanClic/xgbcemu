@@ -48,18 +48,18 @@ void os_open_screen(int width, int height)
     }
     memcpy(tcB8000, screen, 80 * 25 * 2);
 
-    screen = map_framebuffer(0xA0000, 320 * 200);
-    if (screen == NULL)
-    {
-        printf("Could not map 0xA0000.\n");
-        exit(1);
-    }
-    memcpy(tcA0000, screen, 320 * 200);
-
     create_vm86_session();
 
     vm86_set_registers(&(struct vm86_registers){ .eax = 0x13 });
     vm86_int(0x10);
+
+    screen = map_framebuffer(0xA0000, 320 * 200);
+    if (screen == NULL)
+    {
+        printf("Could not map 0xA0000.\n");
+        custom_exit(1);
+    }
+    memcpy(tcA0000, screen, 320 * 200);
 
     scr_width = width;
 
@@ -105,8 +105,12 @@ void custom_exit(int num)
 {
     if (screen != NULL)
     {
+        memcpy(screen, tcA0000, 320 * 200);
         leave_13h();
         destroy_vm86_session();
+        screen = map_framebuffer(0xB8000, 80 * 25 * 2);
+        if (screen != NULL)
+            memcpy(screen, tcB8000, 80 * 25 * 2);
     }
     exit(num);
 }
