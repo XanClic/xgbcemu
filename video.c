@@ -7,12 +7,12 @@
 int frameskip_skip = 0, frameskip_draw = 16;
 static int frameskip_draw_i = 0, frameskip_skip_i = 0, skip_this = 0;
 
-void init_video(void)
+void init_video(int multiplier)
 {
     #ifdef DISPLAY_ALL
-    os_open_screen(256, 256);
+    os_open_screen(256, 256, multiplier);
     #else
-    os_open_screen(160, 144);
+    os_open_screen(160, 144, multiplier);
     #endif
 }
 

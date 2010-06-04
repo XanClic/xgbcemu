@@ -12,7 +12,7 @@ typedef int tcp_server_t;
 
 void os_draw_line(int offx, int offy, int line);
 void os_handle_events(void);
-void os_open_screen(int width, int height);
+void os_open_screen(int width, int height, int multiplier);
 
 void set_tcp_callbacks(void (*rcb)(tcp_connection_t, void *, size_t), void (*ccb)(tcp_connection_t));
 tcp_server_t create_tcp_server(int port);

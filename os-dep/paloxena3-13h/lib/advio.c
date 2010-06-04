@@ -31,9 +31,11 @@ extern int frameskip_skip, frameskip_draw;
 
 uint32_t *old_vga_palette;
 
-void os_open_screen(int width, int height)
+void os_open_screen(int width, int height, int multiplier)
 {
     height = 0;
+
+    multiplier = 0;
 
     fcntl(fileno(stdin), F_SETFL, O_NONBLOCK);
 

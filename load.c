@@ -20,7 +20,7 @@ static const unsigned char id[0x30] =
     0xBB, 0xBB, 0x67, 0x63, 0x6E, 0x0E, 0xEC, 0xCC, 0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E
 };
 
-void load_rom(const char *fname, const char *sname)
+void load_rom(const char *fname, const char *sname, int zoom)
 {
     uint8_t *start_of_rom;
     int cart_type, save_created = 0;
@@ -166,5 +166,5 @@ void load_rom(const char *fname, const char *sname)
 
     load_memory();
 
-    run();
+    run(zoom);
 }

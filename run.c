@@ -1104,7 +1104,7 @@ static void (*const handle[256])(void) =
     &rst0x38        // 0xFF
 };
 
-void run(void)
+void run(int zoom)
 {
     #ifdef TRUE_TIMING
     int64_t too_short = 0, collect_sleep_time = 0;
@@ -1112,7 +1112,7 @@ void run(void)
     tsc_resolution = determine_tsc_resolution();
     #endif
 
-    init_video();
+    init_video(zoom);
     install_shell_handler(&enter_shell); // e.g., Ctrl-C
 
     #ifdef ENABLE_LINK
