@@ -18,9 +18,11 @@ extern int frameskip_skip, frameskip_draw;
 
 uint32_t *old_vga_palette;
 
-void os_open_screen(int width, int height)
+void os_open_screen(int width, int height, int multiplier)
 {
     struct cdi_mem_area *scr = cdi_mem_map(0xA0000, 320 * 200);
+
+    multiplier = 0;
 
     if (scr == NULL)
     {

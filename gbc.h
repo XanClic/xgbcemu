@@ -190,7 +190,7 @@ void generate_interrupts(void);
 void hdma_copy_16b(void);
 void increase_frameskip(void);
 void init_memory(void);
-void init_video(void);
+void init_video(int multiplier);
 void io_outb(uint8_t reg, uint8_t val);
 #ifdef ENABLE_LINK
 void link_clock(void);
@@ -200,7 +200,7 @@ void link_start_ext_transfer(void);
 void link_unplug(void);
 #endif
 void load_memory(void);
-void load_rom(const char *fname, const char *sname);
+void load_rom(const char *fname, const char *sname, int zoom);
 void mem_writeb(uintptr_t addr, uint8_t value);
 void mem_writew(uintptr_t addr, uint16_t value);
 uint8_t mem_readb(uintptr_t addr);
@@ -211,7 +211,7 @@ void new_client(tcp_connection_t conn);
 uint16_t pop(void);
 void push(uint16_t value);
 void redraw(void);
-void run(void);
+void run(int zoom);
 void save_to_disk(void);
 void update_keyboard(void);
 void update_timer(int cycles_gone);
