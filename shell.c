@@ -15,6 +15,16 @@ void enter_shell(void)
 
         if (!strcmp(input, "quit") || !strcmp(input, "exit"))
             break;
+        else if (!strcmp(input, "help"))
+        {
+            os_print("xgbcemu shell\n");
+            os_print(" - quit/exit: Exit shell\n");
+            os_print(" - change_time: Adjust RTC\n");
+            os_print(" - kill: Kill xgbcemu\n");
+            os_print(" - link plug <target>: Connect link cable to target\n");
+            os_print(" - link unplug: Disconnect link cable\n");
+            os_print(" - link status: Print link cable status\n");
+        }
         else if (!strcmp(input, "change_time"))
         {
             latch_time();
