@@ -90,6 +90,8 @@ static void draw_bg_line(int line, int bit7val, int window)
     }
 }
 
+void draw_line(int line) __attribute__((weak));
+
 void draw_line(int line)
 {
     if (!lcd_on)

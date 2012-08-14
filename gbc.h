@@ -89,7 +89,11 @@ extern file_obj fp, save;
 extern int mbc, ext_ram, rtc, batt, rmbl, current_rom_bank;
 extern uint8_t *ext_ram_ptr, *rom_bank_ptr, *base_rom_ptr;
 extern uint8_t *int_ram, *oam_io, *vidram, *int_wram, *full_int_wram, *full_vidram;
-extern uint16_t bpalette[32], opalette[32];
+
+extern uint16_t _palettes[64];
+#define bpalette (&_palettes[ 0])
+#define opalette (&_palettes[32])
+
 extern uint8_t *btm[2], *bwtd[2], *wtm[2];
 extern int hdma_on, boost;
 extern int doy_diff, hour_diff, min_diff, sec_diff;
@@ -201,10 +205,10 @@ void link_unplug(void);
 #endif
 void load_memory(void);
 void load_rom(const char *fname, const char *sname, int zoom);
-void mem_writeb(uintptr_t addr, uint8_t value);
-void mem_writew(uintptr_t addr, uint16_t value);
-uint8_t mem_readb(uintptr_t addr);
-uint16_t mem_readw(uintptr_t addr);
+void mem_writeb(uint16_t addr, uint8_t value);
+void mem_writew(uint16_t addr, uint16_t value);
+uint8_t mem_readb(uint16_t addr);
+uint16_t mem_readw(uint16_t addr);
 #ifdef ENABLE_LINK
 void new_client(tcp_connection_t conn);
 #endif

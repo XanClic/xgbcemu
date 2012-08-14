@@ -23,7 +23,7 @@ static const unsigned char id[0x30] =
 void load_rom(const char *fname, const char *sname, int zoom)
 {
     uint8_t *start_of_rom;
-    int cart_type, save_created = 0;
+    int cart_type;
 
     init_memory();
 
@@ -38,7 +38,6 @@ void load_rom(const char *fname, const char *sname, int zoom)
     if (save == INVALID_FILE_HANDLE)
     {
         save = os_create_file_rw(sname);
-        save_created = 1;
         if (save == INVALID_FILE_HANDLE)
         {
             os_close_file(fp);

@@ -8,7 +8,7 @@
 static int current_ram_bank = 0, creg = 0, ram_val = 0, day_cry_set = 0;
 static uint8_t *ram_banks[4] = { NULL }, *rom_banks[128] = { NULL };
 
-void mbc3_ram_write(uintptr_t addr, uint8_t val)
+void mbc3_ram_write(uint16_t addr, uint8_t val)
 {
     if (!creg)
     {
@@ -19,7 +19,7 @@ void mbc3_ram_write(uintptr_t addr, uint8_t val)
         day_cry_set = val & 0x80;
 }
 
-uint8_t mbc3_ram_read(uintptr_t addr)
+uint8_t mbc3_ram_read(uint16_t addr)
 {
     if (!creg)
     {
@@ -29,7 +29,7 @@ uint8_t mbc3_ram_read(uintptr_t addr)
     return ram_val;
 }
 
-void mbc3_rom_write(uintptr_t addr, uint8_t val)
+void mbc3_rom_write(uint16_t addr, uint8_t val)
 {
     if (addr < 0x2000)
     {
@@ -119,7 +119,7 @@ void mbc3_rom_write(uintptr_t addr, uint8_t val)
     }
 }
 
-uint8_t mbc3_rom_read(uintptr_t addr)
+uint8_t mbc3_rom_read(uint16_t addr)
 {
     os_eprint("[mbc3] Could not handle ROM read from 0x%04X (ROM bank %i)\n", addr, current_rom_bank);
     exit_err();

@@ -7,29 +7,29 @@
 // #define DUMP_IO
 // #define DUMP_VID_WRITES
 
-static void no_ramw_handler(uintptr_t addr, uint8_t value);
-static uint8_t no_ramr_handler(uintptr_t addr);
-static void no_romw_handler(uintptr_t addr, uint8_t value);
-static uint8_t no_romr_handler(uintptr_t addr);
+static void no_ramw_handler(uint16_t addr, uint8_t value);
+static uint8_t no_ramr_handler(uint16_t addr);
+static void no_romw_handler(uint16_t addr, uint8_t value);
+static uint8_t no_romr_handler(uint16_t addr);
 static void no_load_handler(void);
 static void no_save_handler(void);
 
-extern void mbc1_ram_write(uintptr_t addr, uint8_t value);
-extern void mbc2_ram_write(uintptr_t addr, uint8_t value);
-extern void mbc3_ram_write(uintptr_t addr, uint8_t value);
-extern void mbc5_ram_write(uintptr_t addr, uint8_t value);
-extern uint8_t mbc1_ram_read(uintptr_t addr);
-extern uint8_t mbc2_ram_read(uintptr_t addr);
-extern uint8_t mbc3_ram_read(uintptr_t addr);
-extern uint8_t mbc5_ram_read(uintptr_t addr);
-extern void mbc1_rom_write(uintptr_t addr, uint8_t value);
-extern void mbc2_rom_write(uintptr_t addr, uint8_t value);
-extern void mbc3_rom_write(uintptr_t addr, uint8_t value);
-extern void mbc5_rom_write(uintptr_t addr, uint8_t value);
-extern uint8_t mbc1_rom_read(uintptr_t addr);
-extern uint8_t mbc2_rom_read(uintptr_t addr);
-extern uint8_t mbc3_rom_read(uintptr_t addr);
-extern uint8_t mbc5_rom_read(uintptr_t addr);
+extern void mbc1_ram_write(uint16_t addr, uint8_t value);
+extern void mbc2_ram_write(uint16_t addr, uint8_t value);
+extern void mbc3_ram_write(uint16_t addr, uint8_t value);
+extern void mbc5_ram_write(uint16_t addr, uint8_t value);
+extern uint8_t mbc1_ram_read(uint16_t addr);
+extern uint8_t mbc2_ram_read(uint16_t addr);
+extern uint8_t mbc3_ram_read(uint16_t addr);
+extern uint8_t mbc5_ram_read(uint16_t addr);
+extern void mbc1_rom_write(uint16_t addr, uint8_t value);
+extern void mbc2_rom_write(uint16_t addr, uint8_t value);
+extern void mbc3_rom_write(uint16_t addr, uint8_t value);
+extern void mbc5_rom_write(uint16_t addr, uint8_t value);
+extern uint8_t mbc1_rom_read(uint16_t addr);
+extern uint8_t mbc2_rom_read(uint16_t addr);
+extern uint8_t mbc3_rom_read(uint16_t addr);
+extern uint8_t mbc5_rom_read(uint16_t addr);
 extern void mbc1_load(void);
 extern void mbc2_load(void);
 extern void mbc3_load(void);
@@ -39,7 +39,7 @@ extern void mbc2_save(void);
 extern void mbc3_save(void);
 extern void mbc5_save(void);
 
-static void (*const cart_ram_write[6])(uintptr_t addr, uint8_t value) =
+static void (*const cart_ram_write[6])(uint16_t addr, uint8_t value) =
 {
     &no_ramw_handler,
     &mbc1_ram_write,
@@ -49,7 +49,7 @@ static void (*const cart_ram_write[6])(uintptr_t addr, uint8_t value) =
     &mbc5_ram_write
 };
 
-static uint8_t (*const cart_ram_read[6])(uintptr_t addr) =
+static uint8_t (*const cart_ram_read[6])(uint16_t addr) =
 {
     &no_ramr_handler,
     &mbc1_ram_read,
@@ -59,7 +59,7 @@ static uint8_t (*const cart_ram_read[6])(uintptr_t addr) =
     &mbc5_ram_read
 };
 
-static void (*const cart_rom_write[6])(uintptr_t addr, uint8_t value) =
+static void (*const cart_rom_write[6])(uint16_t addr, uint8_t value) =
 {
     &no_romw_handler,
     &mbc1_rom_write,
@@ -69,7 +69,7 @@ static void (*const cart_rom_write[6])(uintptr_t addr, uint8_t value) =
     &mbc5_rom_write
 };
 
-static uint8_t (*const cart_rom_read[6])(uintptr_t addr) =
+static uint8_t (*const cart_rom_read[6])(uint16_t addr) =
 {
     &no_romr_handler,
     &mbc1_rom_read,
@@ -134,7 +134,7 @@ void save_to_disk(void)
     cart_save[mbc]();
 }
 
-void mem_writeb(uintptr_t addr, uint8_t value)
+void mem_writeb(uint16_t addr, uint8_t value)
 {
     #ifdef DUMP
     os_print("0x%02X -> 0x%04X\n", (unsigned)value, (unsigned)addr);
@@ -184,7 +184,7 @@ void mem_writeb(uintptr_t addr, uint8_t value)
     }
 }
 
-void mem_writew(uintptr_t addr, uint16_t value)
+void mem_writew(uint16_t addr, uint16_t value)
 {
     // TODO
     mem_writeb(addr + 0,  value & 0x00FF      );
@@ -192,9 +192,9 @@ void mem_writew(uintptr_t addr, uint16_t value)
 }
 
 #ifndef DUMP
-uint8_t mem_readb(uintptr_t addr)
+uint8_t mem_readb(uint16_t addr)
 #else
-uint8_t mem_readb_(uintptr_t addr)
+uint8_t mem_readb_(uint16_t addr)
 #endif
 {
     if (addr < 0x8000)
@@ -234,7 +234,7 @@ uint8_t mem_readb_(uintptr_t addr)
 }
 
 #ifdef DUMP
-uint8_t mem_readb(uintptr_t addr)
+uint8_t mem_readb(uint16_t addr)
 {
     uint8_t ret = mem_readb_(addr);
     os_print("0x%04X == 0x%02X\n", (unsigned)addr, (unsigned)ret);
@@ -242,30 +242,31 @@ uint8_t mem_readb(uintptr_t addr)
 }
 #endif
 
-uint16_t mem_readw(uintptr_t addr)
+uint16_t mem_readw(uint16_t addr)
 {
     // TODO
     return mem_readb(addr) | (mem_readb(addr + 1) << 8);
 }
 
-static void no_ramw_handler(uintptr_t addr, uint8_t value)
+static void no_ramw_handler(uint16_t addr, uint8_t value)
 {
     os_eprint("No RAM write handler available! (MBC%i, 0x%02X to 0x%04X)\n", mbc, value, addr);
     exit_err();
 }
 
-static uint8_t no_ramr_handler(uintptr_t addr)
+static uint8_t no_ramr_handler(uint16_t addr)
 {
     os_eprint("No RAM read handler available! (MBC%i, from 0x%04X)\n", mbc, addr);
     exit_err();
 }
 
-static void no_romw_handler(uintptr_t addr, uint8_t value)
+static void no_romw_handler(uint16_t addr, uint8_t value)
 {
-    addr = value;
+    (void)addr;
+    (void)value;
 }
 
-static uint8_t no_romr_handler(uintptr_t addr)
+static uint8_t no_romr_handler(uint16_t addr)
 {
     os_eprint("No ROM read handler available! (MBC%i, from 0x%04X)\n", mbc, addr);
     exit_err();

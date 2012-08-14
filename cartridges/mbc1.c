@@ -6,19 +6,19 @@
 static int current_ram_bank = 0, mode = 0;
 static uint8_t *ram_banks[16] = { NULL }, *rom_banks[512] = { NULL };
 
-void mbc1_ram_write(uintptr_t addr, uint8_t val)
+void mbc1_ram_write(uint16_t addr, uint8_t val)
 {
     os_eprint("No MBC1 RAM write handler (0x%02X to 0x%04X)\n", val, addr);
     exit_err();
 }
 
-uint8_t mbc1_ram_read(uintptr_t addr)
+uint8_t mbc1_ram_read(uint16_t addr)
 {
     os_eprint("No MBC1 RAM read handler (from 0x%04X)\n", addr);
     exit_err();
 }
 
-void mbc1_rom_write(uintptr_t addr, uint8_t val)
+void mbc1_rom_write(uint16_t addr, uint8_t val)
 {
     if (addr < 0x2000)
     {
@@ -52,7 +52,7 @@ void mbc1_rom_write(uintptr_t addr, uint8_t val)
         mode = val & 1;
 }
 
-uint8_t mbc1_rom_read(uintptr_t addr)
+uint8_t mbc1_rom_read(uint16_t addr)
 {
     os_eprint("No MBC1 ROM read handler (from 0x%04X)\n", addr);
     exit_err();
