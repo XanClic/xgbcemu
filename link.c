@@ -112,7 +112,7 @@ void new_client(tcp_connection_t conn)
 
 void link_data_arrived(tcp_connection_t conn, void *data, size_t size)
 {
-    size = 0;
+    (void)size;
 
     if (conn != current_connection)
     {
