@@ -1248,7 +1248,7 @@ void run(int zoom)
 
             if (collect_sleep_time >= 10000)
             {
-                sleep_ms(collect_sleep_time / 1000);
+                sleep_us(collect_sleep_time);
                 collect_sleep_time = 0;
             }
         }
