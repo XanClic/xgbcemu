@@ -20,6 +20,6 @@ int current_minutes(void);
 int current_hour(void);
 int current_day_of_year(void);
 
-#define sleep_ms(milliseconds) Sleep(milliseconds)
+#define sleep_us(microseconds) Sleep(microseconds / 1000)
 
 #endif

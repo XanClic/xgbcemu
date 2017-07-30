@@ -20,6 +20,6 @@ int current_minutes(void);
 int current_hour(void);
 int current_day_of_year(void);
 
-#define sleep_ms(milliseconds) nanosleep(&(struct timespec){ .tv_nsec = (uint64_t)(milliseconds) * 1000000LL }, NULL)
+#define sleep_us(microseconds) nanosleep(&(struct timespec){ .tv_nsec = (uint64_t)(microseconds) * 1000LL }, NULL)
 
 #endif
