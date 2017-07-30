@@ -1,4 +1,5 @@
 #include <stddef.h>
+#include <sys/time.h>
 
 #include "gbc.h"
 #include "gen-operations.h"
@@ -15,6 +16,8 @@
 static uint64_t new_tsc, last_tsc;
 static uint32_t diff;
 #endif
+
+static int add_cycles;
 
 extern void (*const handle0xCB[64])(void);
 extern const int cycles[256];
@@ -52,6 +55,7 @@ static void halt(void)
     interrupt_issued = 0;
     while (!interrupt_issued)
     {
+        add_cycles++;
         update_timer(1);
         generate_interrupts();
     }
@@ -1107,7 +1111,10 @@ static void (*const handle[256])(void) =
 void run(int zoom)
 {
     #ifdef TRUE_TIMING
-    int64_t too_short = 0, collect_sleep_time = 0;
+    int64_t too_short = 0, collect_sleep_time = 0, collect_cycles = 0;
+    struct timeval last_sleep_tv;
+
+    gettimeofday(&last_sleep_tv, 0);
 
     tsc_resolution = determine_tsc_resolution();
     #endif
@@ -1222,6 +1229,7 @@ void run(int zoom)
         else
             cyc = cycles0xCB[(int)mem_readb(r_ip)];
 
+        add_cycles = 0;
         handle[opcode]();
 
         if (change_int_status)
@@ -1243,13 +1251,29 @@ void run(int zoom)
 
         if (!boost)
         {
+            cyc += add_cycles;
             too_short = cyc - 1000LL * (uint64_t)diff / (uint64_t)tsc_resolution;
             collect_sleep_time += too_short;
+            collect_cycles += cyc;
 
-            if (collect_sleep_time >= 10000)
+            if (collect_sleep_time >= 1000)
             {
-                sleep_us(collect_sleep_time);
-                collect_sleep_time = 0;
+                struct timeval tv;
+                for (;;) {
+                    gettimeofday(&tv, 0);
+                    int64_t time_diff = (tv.tv_sec - last_sleep_tv.tv_sec) * UINT64_C(1000000)
+                                      + tv.tv_usec - last_sleep_tv.tv_usec;
+                    last_sleep_tv = tv;
+
+                    collect_cycles -= time_diff;
+
+                    if (collect_cycles <= 0) {
+                        collect_sleep_time = 0;
+                        break;
+                    } else if (collect_cycles > 500) {
+                        //sleep_us(collect_cycles / 2);
+                    }
+                }
             }
         }
         #endif
