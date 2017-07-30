@@ -51,9 +51,11 @@ void os_handle_events(void)
                 switch (evt.key.keysym.sym)
                 {
                     case SDLK_a:
+                    case SDLK_SPACE:
                         new_keystate |= VK_A;
                         break;
                     case SDLK_b:
+                    case SDLK_LCTRL:
                         new_keystate |= VK_B;
                         break;
                     case SDLK_RETURN:
@@ -82,9 +84,11 @@ void os_handle_events(void)
                 switch (evt.key.keysym.sym)
                 {
                     case SDLK_a:
+                    case SDLK_SPACE:
                         new_keystate &= ~VK_A;
                         break;
                     case SDLK_b:
+                    case SDLK_LCTRL:
                         new_keystate &= ~VK_B;
                         break;
                     case SDLK_RETURN:
@@ -105,7 +109,7 @@ void os_handle_events(void)
                     case SDLK_DOWN:
                         new_keystate &= ~VK_DOWN;
                         break;
-                    case SDLK_SPACE:
+                    case SDLK_TAB:
                         save_to_disk();
                         break;
                     case SDLK_LSHIFT:
