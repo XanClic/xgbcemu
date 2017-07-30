@@ -8,8 +8,12 @@ static uint8_t *ram_banks[16] = { NULL }, *rom_banks[512] = { NULL };
 
 void mbc1_ram_write(uint16_t addr, uint8_t val)
 {
+    (void)addr;
+    (void)val;
+    /*
     os_eprint("No MBC1 RAM write handler (0x%02X to 0x%04X)\n", val, addr);
     exit_err();
+     */
 }
 
 uint8_t mbc1_ram_read(uint16_t addr)
