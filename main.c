@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
     if (argc < 2)
         do_help();
 
-    char *rom = NULL, *save = NULL, *zoom_stuff = NULL;
+    char *rom = NULL, *save_filename = NULL, *zoom_stuff = NULL;
     int zoom = 1;
     char **next = NULL;
 
@@ -58,8 +58,8 @@ int main(int argc, char *argv[])
         {
             if (rom == NULL)
                 rom = argv[i];
-            else if (save == NULL)
-                save = argv[i];
+            else if (save_filename == NULL)
+                save_filename = argv[i];
             else
                 unrec_op_s(argv[i]);
         }
@@ -115,13 +115,13 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (save == NULL)
+    if (save_filename == NULL)
     {
-        save = malloc(strlen(rom) + 5);
-        strcpy(save, rom);
-        char *l = strrchr(save, '.');
+        save_filename = malloc(strlen(rom) + 5);
+        strcpy(save_filename, rom);
+        char *l = strrchr(save_filename, '.');
         if (l == NULL)
-            strcat(save, ".sav");
+            strcat(save_filename, ".sav");
         else
         {
             *(++l) = 's';
@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    load_rom(rom, save, zoom);
+    load_rom(rom, save_filename, zoom);
 
     exit_ok();
 }
