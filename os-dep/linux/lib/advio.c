@@ -26,16 +26,16 @@ static uint64_t event_count, event_capacity;
 
 static void save_replay(void)
 {
-    FILE *fp = fopen("replay", "w");
-    if (!fp) {
+    FILE *replay_fp = fopen("replay", "w");
+    if (!replay_fp) {
         return;
     }
 
-    fprintf(fp, "%" PRIu64 "\n", event_count);
+    fprintf(replay_fp, "%" PRIu64 "\n", event_count);
     for (uint64_t i = 0; i < event_count; i++) {
-        fprintf(fp, "%" PRIu64 " %i\n", events[i].timestamp, events[i].keystate);
+        fprintf(replay_fp, "%" PRIu64 " %i\n", events[i].timestamp, events[i].keystate);
     }
-    fclose(fp);
+    fclose(replay_fp);
 }
 
 void os_open_screen(int width, int height, int mult)
@@ -67,32 +67,32 @@ void os_open_screen(int width, int height, int mult)
 
     atexit(save_replay);
 
-    FILE *fp = fopen("replay", "r");
-    if (!fp) {
+    FILE *replay_fp = fopen("replay", "r");
+    if (!replay_fp) {
         recording_events = true;
         return;
     }
 
-    fscanf(fp, "%" PRIu64 "\n", &event_count);
+    fscanf(replay_fp, "%" PRIu64 "\n", &event_count);
 
     if (!event_count) {
         recording_events = true;
-        fclose(fp);
+        fclose(replay_fp);
         return;
     }
 
     events = calloc(event_count, sizeof(*events));
     if (!events) {
-        fclose(fp);
+        fclose(replay_fp);
         return;
     }
     event_capacity = event_count;
 
     for (uint64_t i = 0; i < event_count; i++) {
-        fscanf(fp, "%" PRIu64 " %i\n",
+        fscanf(replay_fp, "%" PRIu64 " %i\n",
                &events[i].timestamp, &events[i].keystate);
     }
-    fclose(fp);
+    fclose(replay_fp);
 
     next_event = events;
 }
@@ -194,9 +194,9 @@ void os_handle_events(void)
             events = realloc(events, event_capacity * sizeof(*events));
         }
 
-        struct ReplayEvent *evt = events + event_count++;
-        evt->timestamp = total_cycles_gone;
-        evt->keystate = new_keystate;
+        struct ReplayEvent *replay_evt = events + event_count++;
+        replay_evt->timestamp = total_cycles_gone;
+        replay_evt->keystate = new_keystate;
     }
 
     if (next_event) {
