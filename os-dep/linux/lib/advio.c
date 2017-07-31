@@ -70,6 +70,7 @@ void os_open_screen(int width, int height, int mult)
     FILE *replay_fp = fopen("replay", "r");
     if (!replay_fp) {
         recording_events = true;
+        SDL_WM_SetCaption("xgbcemu (recording replay)", NULL);
         return;
     }
 
@@ -77,6 +78,7 @@ void os_open_screen(int width, int height, int mult)
 
     if (!event_count) {
         recording_events = true;
+        SDL_WM_SetCaption("xgbcemu (recording replay)", NULL);
         fclose(replay_fp);
         return;
     }
@@ -95,6 +97,7 @@ void os_open_screen(int width, int height, int mult)
     fclose(replay_fp);
 
     next_event = events;
+    SDL_WM_SetCaption("xgbcemu (replaying)", NULL);
 }
 
 void os_handle_events(void)
@@ -205,6 +208,8 @@ void os_handle_events(void)
             if ((uint64_t)(++next_event - events) == event_count) {
                 next_event = NULL;
                 recording_events = true;
+
+                SDL_WM_SetCaption("xgbcemu (recording replay)", NULL);
             }
         }
     }
