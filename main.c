@@ -1,15 +1,19 @@
 #include "gbc.h"
 
+#include <stdbool.h>
 #include <string.h>
+
+bool replay;
 
 void do_help(void)
 {
-    os_eprint("Usage: xgbcemu <ROM> [Save] [--zoom|-z zoom]\n");
+    os_eprint("Usage: xgbcemu <ROM> [Save] [--zoom|-z zoom] [--replay|-r]\n");
     os_eprint(" -- ROM: The ROM file to be used.\n");
     os_eprint(" -- Save: This file contains the external RAM, i.e., saved data.\n");
     os_eprint("          If the file doesn't exist, it will be created.\n");
     os_eprint(" -- zoom: Integer values from 1 to infinity are allowed, as long as\n");
     os_eprint("          your hardware is able to handle it.\n");
+    os_eprint(" -- --replay: Replays and records a replay file.\n");
     exit_err();
 }
 
@@ -77,6 +81,9 @@ int main(int argc, char *argv[])
                             break;
                         case 'h':
                             do_help();
+                        case 'r':
+                            replay = true;
+                            break;
                         default:
                             unrec_op_c(argv[i][option]);
                     }
@@ -92,6 +99,8 @@ int main(int argc, char *argv[])
                 }
                 else if (!strcmp(argv[i] + 2, "help"))
                     do_help();
+                else if (!strcmp(argv[i] + 2, "replay"))
+                    replay = true;
                 else
                     unrec_op_s(argv[i]);
             }

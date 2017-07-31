@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -9,6 +10,33 @@
 
 static SDL_Surface *screen;
 static int scr_width, scr_height, multiplier;
+
+extern uint64_t total_cycles_gone;
+
+struct ReplayEvent {
+    uint64_t timestamp;
+    int keystate;
+};
+
+extern bool replay;
+static struct ReplayEvent *events;
+static const struct ReplayEvent *next_event;
+static bool recording_events;
+static uint64_t event_count, event_capacity;
+
+static void save_replay(void)
+{
+    FILE *fp = fopen("replay", "w");
+    if (!fp) {
+        return;
+    }
+
+    fprintf(fp, "%" PRIu64 "\n", event_count);
+    for (uint64_t i = 0; i < event_count; i++) {
+        fprintf(fp, "%" PRIu64 " %i\n", events[i].timestamp, events[i].keystate);
+    }
+    fclose(fp);
+}
 
 void os_open_screen(int width, int height, int mult)
 {
@@ -32,6 +60,41 @@ void os_open_screen(int width, int height, int mult)
     scr_width = width;
     scr_height = height;
     multiplier = mult;
+
+    if (!replay) {
+        return;
+    }
+
+    atexit(save_replay);
+
+    FILE *fp = fopen("replay", "r");
+    if (!fp) {
+        recording_events = true;
+        return;
+    }
+
+    fscanf(fp, "%" PRIu64 "\n", &event_count);
+
+    if (!event_count) {
+        recording_events = true;
+        fclose(fp);
+        return;
+    }
+
+    events = calloc(event_count, sizeof(*events));
+    if (!events) {
+        fclose(fp);
+        return;
+    }
+    event_capacity = event_count;
+
+    for (uint64_t i = 0; i < event_count; i++) {
+        fscanf(fp, "%" PRIu64 " %i\n",
+               &events[i].timestamp, &events[i].keystate);
+    }
+    fclose(fp);
+
+    next_event = events;
 }
 
 void os_handle_events(void)
@@ -41,7 +104,6 @@ void os_handle_events(void)
 
     while (SDL_PollEvent(&evt))
     {
-
         switch (evt.type)
         {
             case SDL_QUIT:
@@ -118,6 +180,32 @@ void os_handle_events(void)
                     default:
                         break;
                 }
+        }
+    }
+
+    if (next_event) {
+        new_keystate = keystates;
+    }
+
+    if (new_keystate != keystates && recording_events) {
+        if (event_count == event_capacity) {
+            event_capacity = (event_capacity + 2) * 3 / 2;
+            // multiplication overflow
+            events = realloc(events, event_capacity * sizeof(*events));
+        }
+
+        struct ReplayEvent *evt = events + event_count++;
+        evt->timestamp = total_cycles_gone;
+        evt->keystate = new_keystate;
+    }
+
+    if (next_event) {
+        while (next_event && next_event->timestamp <= total_cycles_gone) {
+            new_keystate = next_event->keystate;
+            if ((uint64_t)(++next_event - events) == event_count) {
+                next_event = NULL;
+                recording_events = true;
+            }
         }
     }
 

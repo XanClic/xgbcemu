@@ -14,6 +14,8 @@ static const int collect_overflow[4] =
 int link_countdown = 0;
 #endif
 
+uint64_t total_cycles_gone;
+
 void update_timer(int cycles_gone)
 {
     static int collected = 0, vsync_collect = 0, div_collect = 0, redrawed = 0;
@@ -21,6 +23,8 @@ void update_timer(int cycles_gone)
     static int serial_poll_collect = 0;
     #endif
     int hblank_start = 0;
+
+    total_cycles_gone += cycles_gone;
 
     div_collect += cycles_gone;
     while (div_collect >= 64)

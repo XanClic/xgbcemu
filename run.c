@@ -1252,6 +1252,7 @@ void run(int zoom)
         if (!boost)
         {
             cyc += add_cycles;
+            //cyc *= 2;
             too_short = cyc - 1000LL * (uint64_t)diff / (uint64_t)tsc_resolution;
             collect_sleep_time += too_short;
             collect_cycles += cyc;
