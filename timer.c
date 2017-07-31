@@ -1,6 +1,7 @@
 #include <stdint.h>
 
 #include "gbc.h"
+#include "save-state.h"
 
 static const int collect_overflow[4] =
 {
@@ -14,11 +15,11 @@ static const int collect_overflow[4] =
 int link_countdown = 0;
 #endif
 
-uint64_t total_cycles_gone;
+state uint64_t total_cycles_gone;
 
 void update_timer(int cycles_gone)
 {
-    static int collected = 0, vsync_collect = 0, div_collect = 0, redrawed = 0;
+    state static int collected = 0, vsync_collect = 0, div_collect = 0, redrawed = 0;
     #ifdef ENABLE_LINK
     static int serial_poll_collect = 0;
     #endif

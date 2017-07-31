@@ -12,6 +12,7 @@ static SDL_Surface *screen;
 static int scr_width, scr_height, multiplier;
 
 extern uint64_t total_cycles_gone;
+extern int run_factor_eights;
 
 struct ReplayEvent {
     uint64_t timestamp;
@@ -23,6 +24,11 @@ static struct ReplayEvent *events;
 static const struct ReplayEvent *next_event;
 static bool recording_events;
 static uint64_t event_count, event_capacity;
+// newly recorded events will be dropped when loading a savestate
+static uint64_t loaded_event_count;
+
+extern void os_save_savestate(void);
+extern void os_load_savestate(void);
 
 static void save_replay(void)
 {
@@ -75,6 +81,7 @@ void os_open_screen(int width, int height, int mult)
     }
 
     fscanf(replay_fp, "%" PRIu64 "\n", &event_count);
+    loaded_event_count = event_count;
 
     if (!event_count) {
         recording_events = true;
@@ -180,6 +187,29 @@ void os_handle_events(void)
                     case SDLK_LSHIFT:
                         boost ^= 1;
                         break;
+                    case SDLK_COMMA:
+                        run_factor_eights /= 2;
+                        if (run_factor_eights < 1) {
+                            run_factor_eights = 1;
+                        }
+                        break;
+                    case SDLK_PERIOD:
+                        run_factor_eights *= 2;
+                        if (run_factor_eights > 32) {
+                            run_factor_eights = 32;
+                        }
+                        break;
+                    case SDLK_ESCAPE:
+                        next_event = NULL;
+                        recording_events = false;
+                        SDL_WM_SetCaption("xgbcemu", NULL);
+                        break;
+                    case SDLK_EQUALS:
+                        os_save_savestate();
+                        break;
+                    case SDLK_BACKSPACE:
+                        os_load_savestate();
+                        break;
                     default:
                         break;
                 }
@@ -218,6 +248,36 @@ void os_handle_events(void)
     {
         keystates = new_keystate;
         update_keyboard();
+    }
+}
+
+void os_replay_savestate_loaded(void)
+{
+    if (!events) {
+        return;
+    }
+
+    uint64_t i = 0;
+    for (; i < event_count && events[i].timestamp <= total_cycles_gone; i++);
+    if (i == event_count) {
+        next_event = NULL;
+        recording_events = true;
+    } else if (i >= loaded_event_count) {
+        event_count = i;
+        next_event = NULL;
+        recording_events = true;
+    } else {
+        event_count = loaded_event_count;
+        next_event = &events[i];
+        recording_events = false;
+    }
+
+    if (recording_events) {
+        SDL_WM_SetCaption("xgbcemu (recording replay)", NULL);
+    } else if (next_event) {
+        SDL_WM_SetCaption("xgbcemu (replaying)", NULL);
+    } else {
+        SDL_WM_SetCaption("xgbcemu", NULL);
     }
 }
 

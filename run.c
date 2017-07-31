@@ -3,6 +3,7 @@
 
 #include "gbc.h"
 #include "gen-operations.h"
+#include "save-state.h"
 
 // #define DUMP_REGS 0
 
@@ -17,12 +18,14 @@ static uint64_t new_tsc, last_tsc;
 static uint32_t diff;
 #endif
 
-static int add_cycles;
+state static int add_cycles;
 
 extern void (*const handle0xCB[64])(void);
 extern const int cycles[256];
 extern const int cycles0xCB[256];
 extern const uint16_t daa_table[1024];
+
+int run_factor_eights = 8;
 
 
 
@@ -1252,7 +1255,7 @@ void run(int zoom)
         if (!boost)
         {
             cyc += add_cycles;
-            //cyc *= 2;
+            cyc = cyc * 8 / run_factor_eights;
             too_short = cyc - 1000LL * (uint64_t)diff / (uint64_t)tsc_resolution;
             collect_sleep_time += too_short;
             collect_cycles += cyc;
