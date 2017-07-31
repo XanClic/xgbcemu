@@ -1,8 +1,9 @@
 #include "gbc.h"
 
+#include <stdnoreturn.h>
 #include <string.h>
 
-void do_help(void)
+noreturn void do_help(void)
 {
     os_eprint("Usage: xgbcemu <ROM> [Save] [--zoom|-z zoom]\n");
     os_eprint(" -- ROM: The ROM file to be used.\n");
