@@ -1,11 +1,12 @@
 #include "gbc.h"
 
 #include <stdbool.h>
+#include <stdnoreturn.h>
 #include <string.h>
 
 bool replay;
 
-void do_help(void)
+noreturn void do_help(void)
 {
     os_eprint("Usage: xgbcemu <ROM> [Save] [--zoom|-z zoom] [--replay|-r]\n");
     os_eprint(" -- ROM: The ROM file to be used.\n");
