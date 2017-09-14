@@ -90,7 +90,9 @@ static void draw_bg_line(int line, int bit7val, int window)
     }
 }
 
+#ifndef __MINGW32__
 void draw_line(int line) __attribute__((weak));
+#endif
 
 void draw_line(int line)
 {
