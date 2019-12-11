@@ -32,12 +32,7 @@ uint8_t mbc3_ram_read(uint16_t addr)
 void mbc3_rom_write(uint16_t addr, uint8_t val)
 {
     if (addr < 0x2000)
-    {
-        if (val == 0x0A)
-            ext_ram_ptr = ram_banks[current_ram_bank];
-        else
-            ext_ram_ptr = NULL;
-    }
+        ext_ram_ro = (val != 0x0A);
     else if (addr < 0x4000)
     {
         if (current_rom_bank == (val & 0x7F))

@@ -156,7 +156,7 @@ void mem_writeb(uint16_t addr, uint8_t value)
             #endif
             vidram[addr - 0x8000] = value;
         }
-        else
+        else if (!ext_ram_ro)
         {
             if (ext_ram_ptr != NULL)
                 ext_ram_ptr[addr - 0xA000] = value;

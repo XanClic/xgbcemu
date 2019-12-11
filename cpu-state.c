@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -15,6 +16,7 @@ file_obj fp, save;
 
 int mbc, ext_ram, rtc, batt, rmbl, current_rom_bank = 0;
 uint8_t *ext_ram_ptr = NULL, *rom_bank_ptr = NULL, *base_rom_ptr = NULL;
+bool ext_ram_ro = false;
 uint8_t *int_ram = NULL, *oam_io = NULL, *vidram = NULL, *int_wram = NULL, *full_int_wram = NULL, *full_vidram = NULL;
 
 uint16_t _palettes[64];

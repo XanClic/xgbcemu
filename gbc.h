@@ -1,6 +1,7 @@
 #ifndef GBC_H
 #define GBC_H
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -89,6 +90,7 @@ extern file_obj fp, save;
 extern int mbc, ext_ram, rtc, batt, rmbl, current_rom_bank;
 extern uint8_t *ext_ram_ptr, *rom_bank_ptr, *base_rom_ptr;
 extern uint8_t *int_ram, *oam_io, *vidram, *int_wram, *full_int_wram, *full_vidram;
+extern bool ext_ram_ro;
 
 extern uint16_t _palettes[64];
 #define bpalette (&_palettes[ 0])
