@@ -41,6 +41,7 @@ static void prefix0x10(void)
             else
             {
                 double_speed ^= 1;
+                io_regs->key1 ^= 0x80;
                 os_print("Using %s speed\n", double_speed ? "double" : "single");
             }
             break;
